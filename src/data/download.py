@@ -1,9 +1,14 @@
+from datetime import date
 from os import remove
 from pathlib import Path
 from shutil import move
 from zipfile import ZipFile
 
 from requests import get
+
+
+def get_date_str(dt):
+    return f"{dt.year}{dt.month:02d}{dt.day:02d}"
 
 
 def csv_filename(fdir, fname):
@@ -66,3 +71,15 @@ def get_file(
     csv_path = unzip_file(zip_fname, extract_to)
     move_file(src=csv_path, dest=csv_fname)
     # TODO: drop columns
+
+
+def get_files(
+    dates: list[date],
+    url: str,
+    download_to: Path,
+    unzip_to: Path,
+    overwrite=False,
+):
+    for dt in dates:
+        date_str = get_date_str(dt)
+        get_file(date_str, url, download_to, unzip_to, overwrite)
