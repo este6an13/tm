@@ -2,8 +2,8 @@ from collections import defaultdict
 from datetime import timedelta
 from random import sample, seed
 
-from utils.day_types import get_day_type
-from utils.seeds import SEED_SAMPLING_DATES
+from src.utils.day_types import get_day_type
+from src.utils.seeds import SEED_SAMPLING_DATES
 
 
 def generate_strata(start_date, end_date):
