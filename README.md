@@ -6,11 +6,10 @@ This is a sibling repo to [OSLTM](https://github.com/este6an13/osltm) but will c
 
 - `sampling.py`: A script to run a stratified sampling on dates. A startum is a `(year, month, date_type)` combination, and the purpose of it is to get a handful of dates to work on in the pipeline downstream, since it would be too heavy to use all the available dates, and also, it needs to be stratified to guarantee I have a minimal number of samples per combination.
 
-- `download.py`: A script to download check-ins and check-outs data from TM open data portal. The idea is to only download files for the sampled dates.
+- `download.py`: A script to download check-ins and check-outs data from TM open data portal. The idea is to only download files for the sampled dates. It removes unused columns at the end, which saves disk space.
 
 ### What's next:
 
-- A script to pre-process the downloaded files, to save some space in disk
 - A script to perform sampling on stations
 - DB setup: downloaded data should be persisted in a local DB for better management
 
