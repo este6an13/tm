@@ -4,6 +4,7 @@ from pathlib import Path
 from shutil import move
 from zipfile import ZipFile
 
+from pandas import read_csv
 from requests import get
 
 
@@ -52,11 +53,19 @@ def download_file(url: str, download_to: Path) -> bool:
         return False
 
 
+# drop unused columns, saves disk space
+def drop_columns(csv_fname: Path, columns_to_keep: list[str]):
+    df = read_csv(csv_fname)
+    df = df[columns_to_keep]
+    df.to_csv(csv_fname)
+
+
 def get_file(
     date_str: str,
     url: str,
     download_to: Path,
     unzip_to: Path,
+    columns: list[str],
     overwrite=False,
 ):
     URL = url.format(date_str=date_str)
@@ -70,7 +79,7 @@ def get_file(
     extract_to = extract_dir(zip_fname)
     csv_path = unzip_file(zip_fname, extract_to)
     move_file(src=csv_path, dest=csv_fname)
-    # TODO: drop columns
+    drop_columns(csv_fname, columns)
 
 
 def get_files(
@@ -78,8 +87,9 @@ def get_files(
     url: str,
     download_to: Path,
     unzip_to: Path,
+    columns: list[str],
     overwrite=False,
 ):
     for dt in dates:
         date_str = get_date_str(dt)
-        get_file(date_str, url, download_to, unzip_to, overwrite)
+        get_file(date_str, url, download_to, unzip_to, columns, overwrite)

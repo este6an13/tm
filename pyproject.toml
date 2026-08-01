@@ -6,5 +6,6 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "holidays>=0.101",
+    "pandas>=3.0.5",
     "requests>=2.34.2",
 ]

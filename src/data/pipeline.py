@@ -16,6 +16,9 @@ TMP_UNZIP_PATH = Path("data/tmp_unzip")
 TMP_UNZIP_CHECK_INS_PATH = TMP_UNZIP_PATH / "check_ins"
 TMP_UNZIP_CHECK_OUTS_PATH = TMP_UNZIP_PATH / "check_outs"
 
+CHECKINS_COLUMNS = ["Fecha_Transaccion", "Estacion_Parada"]
+CHECKOUTS_COLUMNS = ["Fecha_Transaccion", "Tiempo", "Estacion", "Salidas_S"]
+
 
 def set_up_workspace():
     CHECK_INS_PATH.mkdir(parents=True, exist_ok=True)
@@ -28,7 +31,9 @@ def run():
     set_up_workspace()
     dates = sample_dates(start_date=date(2026, 1, 1), end_date=date(2026, 1, 10), n=2)
     dates = dates[:1]  # just testing
-    get_files(dates, CHECK_INS_URL, CHECK_INS_PATH, TMP_UNZIP_CHECK_INS_PATH)
+    get_files(
+        dates, CHECK_INS_URL, CHECK_INS_PATH, TMP_UNZIP_CHECK_INS_PATH, CHECKINS_COLUMNS
+    )
     cleanup(folders=[TMP_UNZIP_PATH])
 
 
