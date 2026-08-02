@@ -54,9 +54,34 @@ def download_file(url: str, download_to: Path) -> bool:
 
 
 # drop unused columns, saves disk space
-def drop_columns(csv_fname: Path, columns_to_keep: list[str]):
-    df = read_csv(csv_fname)
+def drop_columns(df, columns_to_keep: list[str]):
     df = df[columns_to_keep]
+    return df
+
+
+# make sure check-ins and check-outs files use the same terminology for easier renaming later
+# we bring check-outs file to use the same convention as check-ins
+def standardize_columns(df):
+    if "Tiempo" in df.columns:  # check-outs files have this column
+        # "Fecha_Transaccion" and "Tiempo" are concatenated to follow check-ins convention
+        df["Fecha_Transaccion"] = df["Fecha_Transaccion"] + " " + df["Tiempo"]
+        df = df.rename(columns={"Estacion": "Estacion_Parada"})
+        df = df.rename(
+            columns={"Salidas_S": "events"}
+        )  # this column is only in check-outs files, we rename it right away
+    return df
+
+
+def rename_columns(df):
+    df = df.rename(columns={"Fecha_Transaccion": "time", "Estacion_Parada": "station"})
+    return df
+
+
+def post_processing(csv_fname, columns_to_keep):
+    df = read_csv(csv_fname)
+    df = standardize_columns(df)  # use same convention in both files
+    df = rename_columns(df)  # rename columns for consistency with the codebase
+    df = drop_columns(df, columns_to_keep)  # drop unused columns
     df.to_csv(csv_fname)
 
 
@@ -79,7 +104,7 @@ def get_file(
     extract_to = extract_dir(zip_fname)
     csv_path = unzip_file(zip_fname, extract_to)
     move_file(src=csv_path, dest=csv_fname)
-    drop_columns(csv_fname, columns)
+    post_processing(csv_fname, columns)
 
 
 def get_files(
