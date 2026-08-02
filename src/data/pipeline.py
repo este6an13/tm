@@ -3,6 +3,7 @@ from pathlib import Path
 
 from src.data.download import get_files
 from src.data.sampling.dates import sample_dates
+from src.data.sampling.stations import sample_stations
 from src.data.utils import cleanup
 
 BASE_URL = "https://storage.googleapis.com/validaciones_tmsa/"
@@ -44,6 +45,9 @@ def run():
     get_files(dates, *PARAMS["INS"])
     get_files(dates, *PARAMS["OUTS"])
     cleanup(folders=[TMP_UNZIP_PATH])
+    stations = sample_stations(nfiles=2, nstations=4, paths=[CHECK_INS_PATH])
+    print(stations)
+    # [(7007, 'NQS - Calle 38A Sur'), (7505, 'LEON XIII'), (7201, 'Guatoque -Veraguas'), (4100, 'Carrera 77')]
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 from pathlib import Path
 from random import sample, seed
 
+from pandas import read_csv
+
 from src.utils.seeds import SEED_SAMPLING_STATIONS
 
 
@@ -18,6 +20,52 @@ def sample_files(n, paths):
     return files  # all files
 
 
+def parse_station(station_str: str) -> tuple[int, str] | None:
+    if station_str and "(" in station_str and ")" in station_str:
+        code = int(station_str.split(")")[0].replace("(", "").strip())
+        name = station_str.split(")")[1].strip()
+        return (code, name)
+
+
+def parse_stations(station_strs) -> list[tuple[int, str]]:
+    stations = []
+    for station_str in station_strs:
+        station = parse_station(station_str)
+        if station is not None:
+            stations.append(station)
+    return stations
+
+
+def load_stations(files: Path) -> list[tuple[int, str]]:
+    station_strs = []
+    for file in files:
+        df = read_csv(file, usecols=["station"], dtype={"station": str})
+        station_strs.extend(df["station"])
+    stations = parse_stations(station_strs)
+    return stations
+
+
+# we deduplicate by code: the same station can change its name through time, but not its code
+# we may end up with an old name for a station, that's a limitation we're gonna accept in this pipeline
+def deduplicate_stations(stations: list[tuple[int, str]]) -> list[tuple[int, str]]:
+    stations_map = {}
+    for station in stations:
+        # we don't care about replacing the name if it's different
+        stations_map[station[0]] = station[1]  # 0: code, 1: name
+    # back to the original format
+    stations = [(code, name) for code, name in stations_map.items()]
+    return stations
+
+
+# nfiles doesn't need to be a large number, it's advised to use > 1, just in case there is a station
+# not included in a file for some reason, so this is mostly for covering as much stations as possible
+# paths doesn't need to cover both check-ins and check-outs, you could pick one, again this is mostly
+# coverage; as nfiles increase we should converge to the real total population of stations
 def sample_stations(nfiles, nstations, paths):
     seed(SEED_SAMPLING_STATIONS)
-    # TODO: get sampled files, collect stations, sample stations
+    files = sample_files(n=nfiles, paths=paths)
+    stations = load_stations(files)
+    stations = deduplicate_stations(stations)
+    if nstations <= len(stations):
+        stations = sample(stations, k=nstations)
+    return stations
