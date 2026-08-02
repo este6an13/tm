@@ -2,7 +2,7 @@ from datetime import date
 from pathlib import Path
 
 from src.data.download import get_files
-from src.data.sampling import sample_dates
+from src.data.sampling.dates import sample_dates
 from src.data.utils import cleanup
 
 BASE_URL = "https://storage.googleapis.com/validaciones_tmsa/"
