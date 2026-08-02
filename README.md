@@ -4,14 +4,17 @@ This is a sibling repo to [OSLTM](https://github.com/este6an13/osltm) but will c
 
 ### Currently I have:
 
-- `sampling.py`: A script to run a stratified sampling on dates. A startum is a `(year, month, date_type)` combination, and the purpose of it is to get a handful of dates to work on in the pipeline downstream, since it would be too heavy to use all the available dates, and also, it needs to be stratified to guarantee I have a minimal number of samples per combination.
+- `sampling/dates.py`: A script to run a stratified sampling on dates. A startum is a `(year, month, date_type)` combination, and the purpose of it is to get a handful of dates to work on in the pipeline downstream, since it would be too heavy to use all the available dates, and also, it needs to be stratified to guarantee I have a minimal number of samples per combination.
 
 - `download.py`: A script to download check-ins and check-outs data from TM open data portal. The idea is to only download files for the sampled dates. It removes unused columns at the end, which saves disk space.
 
+- `sampling/stations.py`: A script to read the available stations in the available sampled dates files. Once loaded, we parse them to get a unified structure `(code, name)`, and finally perform the sampling.
+
+> Why sampling stations? This is to speed-up the pipeline in the experimentation stages. We may not want to run experiments on the +100 stations in the beginning, and also, if we use a subset of stations, the database will have less data liberating disk space. At some point we may want to analyze all stations, since we may be interested in classifying them based on their profiles, but that will be a future step, if I decide going that route.
+
 ### What's next:
 
-- A script to perform sampling on stations
-- DB setup: downloaded data should be persisted in a local DB for better management
+- DB setup: downloaded data should be persisted in a local DB for better management: (this should included sampled dates and stations, for easier processing later in the codebase)
 
 ### Note:
 
