@@ -1,6 +1,6 @@
 import logging
 
-import click
+from click import echo
 from colorama import Fore, Style
 
 
@@ -22,11 +22,6 @@ handler = logging.StreamHandler()
 handler.setFormatter(ColorFormatter())
 logger.addHandler(handler)
 logger.propagate = False
-
-
-# use click.echo to print to the console
-def echo(message):
-    click.echo(message)
 
 
 def success(message):
