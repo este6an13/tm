@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.18.5",
     "click>=8.4.2",
     "colorama>=0.4.6",
     "holidays>=0.101",
