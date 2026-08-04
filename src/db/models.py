@@ -86,3 +86,30 @@ class Station(Base):
 
     def __repr__(self):
         return f"<Station(id={self.id}, code='{self.code}', name='{self.name}')>"
+
+
+class ProcessedFile(Base):
+    __tablename__ = "processed_files"
+
+    # PK
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    # File details
+    filename: Mapped[str] = mapped_column(String(100))  # "20251014"
+
+    # Processing details
+    process_type: Mapped[str] = mapped_column(String(50))
+    processed: Mapped[bool] = mapped_column(default=False)
+    processed_at: Mapped[datetime | None] = mapped_column()
+
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("filename", "process_type", name="uq_processed_file_type"),
+    )
+
+    def __repr__(self):
+        return (
+            f"<ProcessedFile(filename='{self.filename}', "
+            f"process_type='{self.process_type}', processed={self.processed})>"
+        )
