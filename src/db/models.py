@@ -1,11 +1,21 @@
-from datetime import datetime
-
-from sqlalchemy import ForeignKey, Index, String, UniqueConstraint, func
+from sqlalchemy import ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
     pass
+
+
+COUNTS_UQ_COLS = [
+    "station_id",
+    "year",
+    "month",
+    "day",
+    "day_of_week",
+    "time",
+    "day_type",
+    "window_minutes",
+]
 
 
 class Counts(Base):
@@ -34,26 +44,13 @@ class Counts(Base):
     count_in: Mapped[int] = mapped_column()
     count_out: Mapped[int] = mapped_column()
 
-    # Timestamps
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    updated_at: Mapped[datetime | None] = mapped_column(
-        nullable=True, onupdate=func.now()
-    )
-
     # Relationships
     station = relationship("Station", back_populates="counts")
 
     # Constraints and indexes
     __table_args__ = (
         UniqueConstraint(
-            "station_id",
-            "year",
-            "month",
-            "day",
-            "day_of_week",
-            "time",
-            "day_type",
-            "window_minutes",
+            *COUNTS_UQ_COLS,
             name="uq_counts_station_time",
         ),
         Index("ix_counts_station_time", "station_id", "time"),
@@ -100,9 +97,6 @@ class ProcessedFile(Base):
     # Processing details
     process_type: Mapped[str] = mapped_column(String(50))
     processed: Mapped[bool] = mapped_column(default=False)
-    processed_at: Mapped[datetime | None] = mapped_column()
-
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     __table_args__ = (
         UniqueConstraint("filename", "process_type", name="uq_processed_file_type"),
