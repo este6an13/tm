@@ -1,8 +1,10 @@
 from typing import Literal
 
-from sqlalchemy.orm import Session, insert
+from sqlalchemy.dialects.sqlite import insert
+from sqlalchemy.orm import Session
 
-from src.db.models import COUNTS_UQ_COLS, Base, Counts, Station
+from src.db.models import COUNTS_UQ_COLS, Base, Counts, Station, StationSamplingRun
+from src.utils.logging import warning
 
 
 class BaseRepo:
@@ -28,16 +30,17 @@ class BaseRepo:
 
 
 class StationRepo(BaseRepo):
-    model: Station
+    model = Station
 
-    def create(self, station: Station) -> Station:
+    def create(self, station: Station) -> Station | None:
         if self.exists(code=station.code):
-            raise ValueError(f"station with code {station.code} already exists")
+            warning(f"station with code {station.code} already exists")
+            return
         return self.add(station)
 
 
 class CountsRepo(BaseRepo):
-    model: Counts
+    model = Counts
 
     def create(self, counts: Counts) -> Counts:
         return self.add(counts)
@@ -81,3 +84,19 @@ class CountsRepo(BaseRepo):
             batch = counts[i : i + batch_size]
             self._bulk_upsert_batch(batch, "count_out")
         self.db.commit()
+
+
+class StationSamplingRunRepo(BaseRepo):
+    model = StationSamplingRun
+
+    def create(self, run: StationSamplingRun) -> StationSamplingRun | None:
+        if self.exists(
+            nfiles=run.nfiles,
+            nstations=run.nstations,
+            seed=run.seed,
+            sampled_files_hash=run.sampled_files_hash,
+        ):
+            params_str = f"nfiles={run.nfiles}, nstations={run.nstations}, seed={run.seed}, sampled_files_hash={run.sampled_files_hash[:7]}"
+            warning(f"station sampling run with params {params_str} already exists")
+            return
+        return self.add(run)

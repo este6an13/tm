@@ -1,8 +1,11 @@
+from hashlib import sha256
 from pathlib import Path
 from random import sample, seed
 
 from pandas import read_csv
 
+from src.db.models import StationSamplingRun
+from src.db.repo import StationSamplingRunRepo
 from src.utils.seeds import SEED_SAMPLING_STATIONS
 
 
@@ -61,11 +64,36 @@ def deduplicate_stations(stations: list[tuple[int, str]]) -> list[tuple[int, str
 # not included in a file for some reason, so this is mostly for covering as much stations as possible
 # paths doesn't need to cover both check-ins and check-outs, you could pick one, again this is mostly
 # coverage; as nfiles increase we should converge to the real total population of stations
-def sample_stations(nfiles, nstations, paths):
+def sample_stations(
+    nfiles, nstations, paths
+) -> tuple[list[Path], list[tuple[int, str]]]:
     seed(SEED_SAMPLING_STATIONS)
     files = sample_files(n=nfiles, paths=paths)
     stations = load_stations(files)
     stations = deduplicate_stations(stations)
     if nstations <= len(stations):
         stations = sample(stations, k=nstations)
-    return stations
+    return files, stations  # return files just for reproducibility
+
+
+def hash_file_list(files: list[str]) -> str:
+    return sha256(",".join(files).encode()).hexdigest()
+
+
+def station_sampling(db, nfiles, nstations, paths):
+    # sampling
+    files, stations = sample_stations(nfiles, nstations, paths)
+    files = sorted(files)  # required for hashing
+    files = [str(f) for f in files]
+    # persistence
+    run = StationSamplingRunRepo(db).create(
+        StationSamplingRun(
+            nfiles=nfiles,
+            nstations=nstations,
+            seed=SEED_SAMPLING_STATIONS,
+            sampled_files=files,
+            sampled_files_hash=hash_file_list(files),
+            sampled_stations=[{"code": code, "name": name} for code, name in stations],
+        )
+    )
+    return files, stations, run

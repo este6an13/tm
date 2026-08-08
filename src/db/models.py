@@ -1,4 +1,6 @@
-from sqlalchemy import ForeignKey, Index, String, UniqueConstraint
+from datetime import date
+
+from sqlalchemy import JSON, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -107,3 +109,48 @@ class ProcessedFile(Base):
             f"<ProcessedFile(filename='{self.filename}', "
             f"process_type='{self.process_type}', processed={self.processed})>"
         )
+
+
+class DateSamplingRun(Base):
+    __tablename__ = "date_sampling_runs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    start_date: Mapped[date] = mapped_column()
+    end_date: Mapped[date] = mapped_column()
+    n: Mapped[int] = mapped_column()
+    seed: Mapped[int] = mapped_column()
+    sampled_dates: Mapped[list[str]] = mapped_column(JSON)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "start_date",
+            "end_date",
+            "n",
+            "seed",
+            name="uq_date_sampling_run_params",
+        ),
+    )
+
+
+class StationSamplingRun(Base):
+    __tablename__ = "station_sampling_runs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    nfiles: Mapped[int] = mapped_column()
+    nstations: Mapped[int] = mapped_column()
+    seed: Mapped[int] = mapped_column()
+    sampled_files: Mapped[list[str]] = mapped_column(JSON)
+    sampled_files_hash: Mapped[str] = mapped_column(String(64))
+    sampled_stations: Mapped[list[dict]] = mapped_column(JSON)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "nfiles",
+            "nstations",
+            "seed",
+            "sampled_files_hash",
+            name="uq_station_sampling_run_params",
+        ),
+    )

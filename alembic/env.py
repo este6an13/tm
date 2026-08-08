@@ -6,10 +6,10 @@ from alembic import context
 from src.db.models import (  # noqa: F401
     Base,
     Counts,
-    NetworkEdge,
-    NetworkNode,
+    DateSamplingRun,
     ProcessedFile,
     Station,
+    StationSamplingRun,
 )
 from src.db.session import DATABASE_URL
 

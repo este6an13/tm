@@ -1,4 +1,4 @@
-from os.path import abspath, dirname
+from os.path import abspath, dirname, join
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -6,16 +6,16 @@ from sqlalchemy.orm import sessionmaker
 from src.db.models import (  # noqa: F401
     Base,
     Counts,
-    NetworkEdge,
-    NetworkNode,
+    DateSamplingRun,
     ProcessedFile,
     Station,
+    StationSamplingRun,
 )
 from src.utils.logging import logger
 
 BASE_DIR = dirname(dirname(dirname(abspath(__file__))))
 DATABASE_FILE = "tm.db"
-DATABASE_URL = "sqlite:///" / BASE_DIR / DATABASE_FILE
+DATABASE_URL = f"sqlite:///{join(BASE_DIR, DATABASE_FILE)}"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
