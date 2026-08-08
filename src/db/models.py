@@ -59,14 +59,6 @@ class Counts(Base):
         Index("ix_counts_day_of_week", "day_of_week"),
     )
 
-    def __repr__(self):
-        return (
-            f"<Counts(id={self.id}, station_id={self.station_id}, "
-            f"date={self.year}-{self.month:02d}-{self.day:02d}, time={self.time}, "
-            f"day_type={self.day_type}, window_minutes={self.window_size}, "
-            f"count_in={self.count_in}, count_out={self.count_out})>"
-        )
-
 
 class Station(Base):
     __tablename__ = "stations"
@@ -82,9 +74,6 @@ class Station(Base):
     counts: Mapped[list["Counts"]] = relationship(
         back_populates="station", cascade="all, delete-orphan"
     )
-
-    def __repr__(self):
-        return f"<Station(id={self.id}, code='{self.code}', name='{self.name}')>"
 
 
 class ProcessedFile(Base):
@@ -103,12 +92,6 @@ class ProcessedFile(Base):
     __table_args__ = (
         UniqueConstraint("filename", "process_type", name="uq_processed_file_type"),
     )
-
-    def __repr__(self):
-        return (
-            f"<ProcessedFile(filename='{self.filename}', "
-            f"process_type='{self.process_type}', processed={self.processed})>"
-        )
 
 
 class DateSamplingRun(Base):
