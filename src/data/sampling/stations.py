@@ -94,6 +94,7 @@ def sample_stations(db, nfiles, nstations, paths):
             sampled_files=files,
             sampled_files_hash=hash_file_list(files),
             sampled_stations=[{"code": code, "name": name} for code, name in stations],
+            n_sampled=len(stations),
         )
     )
     return files, stations, run

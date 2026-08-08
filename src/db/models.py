@@ -104,6 +104,7 @@ class DateSamplingRun(Base):
     n: Mapped[int] = mapped_column()
     seed: Mapped[int] = mapped_column()
     sampled_dates: Mapped[list[str]] = mapped_column(JSON)
+    n_sampled: Mapped[int] = mapped_column()
 
     __table_args__ = (
         UniqueConstraint(
@@ -127,6 +128,7 @@ class StationSamplingRun(Base):
     sampled_files: Mapped[list[str]] = mapped_column(JSON)
     sampled_files_hash: Mapped[str] = mapped_column(String(64))
     sampled_stations: Mapped[list[dict]] = mapped_column(JSON)
+    n_sampled: Mapped[int] = mapped_column()
 
     __table_args__ = (
         UniqueConstraint(

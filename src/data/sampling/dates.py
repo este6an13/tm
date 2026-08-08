@@ -59,6 +59,7 @@ def sample_dates(db, start_date, end_date, n):
             seed=SEED_SAMPLING_DATES,
             n=n,
             sampled_dates=sorted([str(dt) for dt in dates]),
+            n_sampled=len(dates),
         )
     )
     return dates, run
