@@ -64,7 +64,7 @@ def deduplicate_stations(stations: list[tuple[int, str]]) -> list[tuple[int, str
 # not included in a file for some reason, so this is mostly for covering as much stations as possible
 # paths doesn't need to cover both check-ins and check-outs, you could pick one, again this is mostly
 # coverage; as nfiles increase we should converge to the real total population of stations
-def sample_stations(
+def _sample_stations(
     nfiles, nstations, paths
 ) -> tuple[list[Path], list[tuple[int, str]]]:
     seed(SEED_SAMPLING_STATIONS)
@@ -80,9 +80,9 @@ def hash_file_list(files: list[str]) -> str:
     return sha256(",".join(files).encode()).hexdigest()
 
 
-def station_sampling(db, nfiles, nstations, paths):
+def sample_stations(db, nfiles, nstations, paths):
     # sampling
-    files, stations = sample_stations(nfiles, nstations, paths)
+    files, stations = _sample_stations(nfiles, nstations, paths)
     files = sorted(files)  # required for hashing
     files = [str(f) for f in files]
     # persistence

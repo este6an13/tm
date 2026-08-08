@@ -4,6 +4,8 @@ from random import sample, seed
 
 from src.utils.day_types import get_day_type
 from src.utils.seeds import SEED_SAMPLING_DATES
+from src.db.models import DateSamplingRun
+from src.db.repo import DateSamplingRunRepo
 
 
 def generate_strata(start_date, end_date):
@@ -39,8 +41,24 @@ def stratified_sampling(strata, n):
 
 
 # perform a stratified sampling, n is the number of elements required per stratum
-def sample_dates(start_date, end_date, n):
+def _sample_dates(start_date, end_date, n):
     seed(SEED_SAMPLING_DATES)
     strata = generate_strata(start_date, end_date)
     samples = stratified_sampling(strata, n)
     return samples
+
+
+def sample_dates(db, start_date, end_date, n):
+    # sampling
+    dates = _sample_dates(start_date, end_date, n)
+    # persistence
+    run = DateSamplingRunRepo(db).create(
+        DateSamplingRun(
+            start_date=start_date,
+            end_date=end_date,
+            seed=SEED_SAMPLING_DATES,
+            n=n,
+            sampled_dates=sorted([str(dt) for dt in dates]),
+        )
+    )
+    return dates, run

@@ -3,7 +3,14 @@ from typing import Literal
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.orm import Session
 
-from src.db.models import COUNTS_UQ_COLS, Base, Counts, Station, StationSamplingRun
+from src.db.models import (
+    COUNTS_UQ_COLS,
+    Base,
+    Counts,
+    DateSamplingRun,
+    Station,
+    StationSamplingRun,
+)
 from src.utils.logging import warning
 
 
@@ -84,6 +91,19 @@ class CountsRepo(BaseRepo):
             batch = counts[i : i + batch_size]
             self._bulk_upsert_batch(batch, "count_out")
         self.db.commit()
+
+
+class DateSamplingRunRepo(BaseRepo):
+    model = DateSamplingRun
+
+    def create(self, run: DateSamplingRun) -> DateSamplingRun | None:
+        if self.exists(
+            start_date=run.start_date, end_date=run.end_date, seed=run.seed, n=run.n
+        ):
+            params_str = f"start_date={run.start_date}, end_date={run.end_date}, seed={run.seed}, n={run.n}"
+            warning(f"date sampling run with params {params_str} already exists")
+            return
+        return self.add(run)
 
 
 class StationSamplingRunRepo(BaseRepo):

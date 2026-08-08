@@ -3,7 +3,7 @@ from pathlib import Path
 
 from src.data.download import get_files
 from src.data.sampling.dates import sample_dates
-from src.data.sampling.stations import station_sampling
+from src.data.sampling.stations import sample_stations
 from src.data.utils import cleanup
 from src.db.session import SessionLocal
 
@@ -42,19 +42,24 @@ def set_up_workspace():
 def run():
     db = SessionLocal()
     set_up_workspace()
-    dates = sample_dates(start_date=date(2026, 1, 1), end_date=date(2026, 1, 10), n=2)
+    dates, dsrun = sample_dates(
+        db, start_date=date(2026, 1, 1), end_date=date(2026, 1, 10), n=2
+    )
+    print(dates)
+    if dsrun:
+        print(dsrun)
     dates = dates[:1]  # just testing
     get_files(dates, *PARAMS["INS"])
     get_files(dates, *PARAMS["OUTS"])
     cleanup(folders=[TMP_UNZIP_PATH])
-    files, stations, run = station_sampling(
+    files, stations, ssrun = sample_stations(
         db, nfiles=2, nstations=4, paths=[CHECK_INS_PATH]
     )
     print(files)  # ['data\\check_ins\\daily\\20260101.csv']
     print(stations)
     # [(7007, 'NQS - Calle 38A Sur'), (7505, 'LEON XIII'), (7201, 'Guatoque -Veraguas'), (4100, 'Carrera 77')]
-    if run:
-        print(run.sampled_files_hash)  # 6fc14a5 ...
+    if ssrun:
+        print(ssrun)  # 6fc14a5 ...
 
 
 if __name__ == "__main__":
