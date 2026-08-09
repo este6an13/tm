@@ -7,7 +7,9 @@ from zipfile import ZipFile
 from pandas import read_csv
 from requests import get
 
+from src.data.files import file_exists
 from src.data.utils import get_date_str
+from src.utils.logging import warning
 
 
 def csv_filename(fdir, fname):
@@ -93,6 +95,9 @@ def get_file(
 ):
     URL = url.format(date_str=date_str)
     csv_fname = csv_filename(fdir=download_to, fname=date_str)
+    if file_exists(csv_fname):
+        warning(f"file {csv_fname} already exists, skipping download")
+        return
     if overwrite:
         remove_file(csv_fname)
     zip_fname = zip_filename(fdir=unzip_to, fname=date_str)
