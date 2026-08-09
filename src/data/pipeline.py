@@ -48,9 +48,8 @@ def run():
     )
     print(dates)
     print(dsrun.id)
-    dates = dates[:1]  # just testing
-    get_files(dates, *PARAMS["INS"], redownload=True)
-    get_files(dates, *PARAMS["OUTS"], redownload=True)
+    get_files(dates, *PARAMS["INS"])
+    get_files(dates, *PARAMS["OUTS"])
     cleanup(folders=[TMP_UNZIP_PATH])
     files, stations, ssrun = sample_stations(
         db, nfiles=2, nstations=4, paths=[CHECK_INS_PATH]

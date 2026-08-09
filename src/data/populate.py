@@ -17,12 +17,14 @@ def populate_check_ins(dsrun_id: int, ssrun_id: int, path: Path):
     # fetch station sampling results, and store the stations
     ssrun = ssrun_repo.get_by(id=ssrun_id)
     station_repo.bulk_insert(ssrun.sampled_stations)
+    station_codes = [s["code"] for s in ssrun.sampled_stations]
 
     dsrun = dsrun_repo.get_by(id=dsrun_id)
     for dt_str in dsrun.sampled_dates:
         date_str = iso_to_date_str(dt_str)
-        # df = read_csv(csv_filename(path, date_str))
-
+        df = read_csv(csv_filename(path, date_str))
+        df = df[df["station_code"].isin(station_codes)]
+        print(df)
     # iterate over dates (files)
     # skip if file processed: check sample dates, use files repo
     # load data from csv

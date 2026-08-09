@@ -3,7 +3,7 @@ from pathlib import Path
 from shutil import move
 from zipfile import ZipFile
 
-from pandas import read_csv, Series, DataFrame
+from pandas import DataFrame, Series, read_csv
 from requests import get
 
 from src.data.files import file_exists
