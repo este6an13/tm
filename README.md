@@ -10,11 +10,14 @@ This is a sibling repo to [OSLTM](https://github.com/este6an13/osltm) but will c
 
 - `sampling/stations.py`: A script to read the available stations in the available sampled dates files. Once loaded, we parse them to get a unified structure `(code, name)`, and finally perform the sampling.
 
+- DB setup: I've been adding the main models and their repo layers, which now allows me to start persisting and reading data. I use SQLite engine and SQLAlchemy as ORM.
+
 > Why sampling stations? This is to speed-up the pipeline in the experimentation stages. We may not want to run experiments on the +100 stations in the beginning, and also, if we use a subset of stations, the database will have less data liberating disk space. At some point we may want to analyze all stations, since we may be interested in classifying them based on their profiles, but that will be a future step, if I decide going that route.
 
 ### What's next:
 
-- DB setup: downloaded data should be persisted in a local DB for better management: (this should included sampled dates and stations, for easier processing later in the codebase)
+- Populate logic: the step that actually persists data in DB.
+- First statistical diagnostics
 
 ### Note:
 
