@@ -19,6 +19,10 @@ COUNTS_UQ_COLS = [
     "window_minutes",
 ]
 
+STATION_UQ_COLS = [
+    "code",
+]
+
 
 class Counts(Base):
     __tablename__ = "counts"

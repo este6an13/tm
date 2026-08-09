@@ -4,6 +4,7 @@ from pathlib import Path
 from src.data.download import get_files
 from src.data.sampling.dates import sample_dates
 from src.data.sampling.stations import sample_stations
+from src.data.populate import populate_check_ins
 from src.data.utils import cleanup
 from src.db.session import SessionLocal
 
@@ -46,8 +47,7 @@ def run():
         db, start_date=date(2026, 1, 1), end_date=date(2026, 1, 10), n=2
     )
     print(dates)
-    if dsrun:
-        print(dsrun)
+    print(dsrun.id)
     dates = dates[:1]  # just testing
     get_files(dates, *PARAMS["INS"])
     get_files(dates, *PARAMS["OUTS"])
@@ -58,8 +58,9 @@ def run():
     print(files)  # ['data\\check_ins\\daily\\20260101.csv']
     print(stations)
     # [(7007, 'NQS - Calle 38A Sur'), (7505, 'LEON XIII'), (7201, 'Guatoque -Veraguas'), (4100, 'Carrera 77')]
-    if ssrun:
-        print(ssrun)  # 6fc14a5 ...
+    print(ssrun.sampled_files_hash[:7])  # 6fc14a5
+
+    populate_check_ins(dsrun.id, ssrun.id)
 
 
 if __name__ == "__main__":

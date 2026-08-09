@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from src.db.models import (
     COUNTS_UQ_COLS,
+    STATION_UQ_COLS,
     Base,
     Counts,
     DateSamplingRun,
@@ -44,6 +45,23 @@ class StationRepo(BaseRepo):
             warning(f"station with code {station.code} already exists")
             return
         return self.add(station)
+
+    def get_by_codes(self, codes: list[int]) -> list[Station]:
+        return self.db.query(self.model).filter(self.model.code.in_(codes)).all()
+
+    def bulk_insert(self, stations: list[dict]) -> list[Station]:
+        if not stations:
+            return []
+
+        # perform insert: handles uq constraint gracefully
+        stmt = insert(self.model).values(stations)
+        stmt = stmt.on_conflict_do_nothing(index_elements=STATION_UQ_COLS)
+        self.db.execute(stmt)
+        self.db.commit()
+
+        # fetch inserted stations: lookup by codes
+        codes = [s["code"] for s in stations]
+        return self.get_by_codes(codes)
 
 
 class CountsRepo(BaseRepo):
@@ -96,27 +114,29 @@ class CountsRepo(BaseRepo):
 class DateSamplingRunRepo(BaseRepo):
     model = DateSamplingRun
 
-    def create(self, run: DateSamplingRun) -> DateSamplingRun | None:
-        if self.exists(
+    def create(self, run: DateSamplingRun) -> DateSamplingRun:
+        existing_run = self.get_by(
             start_date=run.start_date, end_date=run.end_date, seed=run.seed, n=run.n
-        ):
+        )
+        if existing_run:
             params_str = f"start_date={run.start_date}, end_date={run.end_date}, seed={run.seed}, n={run.n}"
             warning(f"date sampling run with params {params_str} already exists")
-            return
+            return existing_run
         return self.add(run)
 
 
 class StationSamplingRunRepo(BaseRepo):
     model = StationSamplingRun
 
-    def create(self, run: StationSamplingRun) -> StationSamplingRun | None:
-        if self.exists(
+    def create(self, run: StationSamplingRun) -> StationSamplingRun:
+        existing_run = self.get_by(
             nfiles=run.nfiles,
             nstations=run.nstations,
             seed=run.seed,
             sampled_files_hash=run.sampled_files_hash,
-        ):
+        )
+        if existing_run:
             params_str = f"nfiles={run.nfiles}, nstations={run.nstations}, seed={run.seed}, sampled_files_hash={run.sampled_files_hash[:7]}"
             warning(f"station sampling run with params {params_str} already exists")
-            return
+            return existing_run
         return self.add(run)
