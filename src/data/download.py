@@ -1,5 +1,4 @@
 from datetime import date
-from os import remove
 from pathlib import Path
 from shutil import move
 from zipfile import ZipFile
@@ -36,11 +35,6 @@ def extract_dir(zip_fname):
 def move_file(src, dest):
     if src and src.exists():
         move(src, dest)
-
-
-def remove_file(path):
-    if path.exists():
-        remove(path)
 
 
 def download_file(url: str, download_to: Path) -> bool:
@@ -91,15 +85,13 @@ def get_file(
     download_to: Path,
     unzip_to: Path,
     columns: list[str],
-    overwrite=False,
+    redownload=False,
 ):
     URL = url.format(date_str=date_str)
     csv_fname = csv_filename(fdir=download_to, fname=date_str)
-    if file_exists(csv_fname):
+    if not redownload and file_exists(csv_fname):
         warning(f"file {csv_fname} already exists, skipping download")
         return
-    if overwrite:
-        remove_file(csv_fname)
     zip_fname = zip_filename(fdir=unzip_to, fname=date_str)
     success = download_file(URL, zip_fname)
     if not success:
@@ -116,8 +108,8 @@ def get_files(
     download_to: Path,
     unzip_to: Path,
     columns: list[str],
-    overwrite=False,
+    redownload=False,
 ):
     for dt in dates:
         date_str = get_date_str(dt)
-        get_file(date_str, url, download_to, unzip_to, columns, overwrite)
+        get_file(date_str, url, download_to, unzip_to, columns, redownload)
