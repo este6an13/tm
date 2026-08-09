@@ -18,3 +18,7 @@ def get_date_str(dt: date):
 
 def iso_to_date_str(dt_str: str):  # "YYYY-MM-DD" string
     return dt_str.replace("-", "")
+
+
+def csv_filename(fdir, fname):
+    return fdir / f"{fname}.csv"

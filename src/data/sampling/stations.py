@@ -23,28 +23,12 @@ def sample_files(n, paths):
     return files  # all files
 
 
-def parse_station(station_str: str) -> tuple[int, str] | None:
-    if station_str and "(" in station_str and ")" in station_str:
-        code = int(station_str.split(")")[0].replace("(", "").strip())
-        name = station_str.split(")")[1].strip()
-        return (code, name)
-
-
-def parse_stations(station_strs) -> list[tuple[int, str]]:
-    stations = []
-    for station_str in station_strs:
-        station = parse_station(station_str)
-        if station is not None:
-            stations.append(station)
-    return stations
-
-
 def load_stations(files: Path) -> list[tuple[int, str]]:
-    station_strs = []
+    stations = []
     for file in files:
-        df = read_csv(file, usecols=["station"], dtype={"station": str})
-        station_strs.extend(df["station"])
-    stations = parse_stations(station_strs)
+        df = read_csv(file, usecols=["station_code", "station_name"])
+        stations_tuples = list(zip(df["station_code"], df["station_name"]))
+        stations.extend(stations_tuples)
     return stations
 
 

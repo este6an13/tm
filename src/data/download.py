@@ -3,16 +3,12 @@ from pathlib import Path
 from shutil import move
 from zipfile import ZipFile
 
-from pandas import read_csv
+from pandas import read_csv, Series, DataFrame
 from requests import get
 
 from src.data.files import file_exists
-from src.data.utils import get_date_str
+from src.data.utils import csv_filename, get_date_str
 from src.utils.logging import warning
-
-
-def csv_filename(fdir, fname):
-    return fdir / f"{fname}.csv"
 
 
 def zip_filename(fdir, fname):
@@ -53,6 +49,17 @@ def drop_columns(df, columns_to_keep: list[str]):
     return df
 
 
+def parse_station(station_str: str) -> tuple[int, str] | None:
+    if station_str and "(" in station_str and ")" in station_str:
+        code = int(station_str.split(")")[0].replace("(", "").strip())
+        name = station_str.split(")")[1].strip()
+        return (code, name)
+
+
+def parse_stations(stations: Series) -> Series:
+    return stations.apply(parse_station)
+
+
 # make sure check-ins and check-outs files use the same terminology for easier renaming later
 # we bring check-outs file to use the same convention as check-ins
 def standardize_columns(df):
@@ -66,6 +73,13 @@ def standardize_columns(df):
     return df
 
 
+def split_station_column(df):
+    # split estacion into two separate columns for easier processing downstream in the pipeline
+    stations = parse_stations(df["Estacion_Parada"])
+    df[["station_code", "station_name"]] = DataFrame(stations.tolist(), index=df.index)
+    return df
+
+
 def rename_columns(df):
     df = df.rename(columns={"Fecha_Transaccion": "time", "Estacion_Parada": "station"})
     return df
@@ -74,6 +88,7 @@ def rename_columns(df):
 def post_processing(csv_fname, columns_to_keep):
     df = read_csv(csv_fname)
     df = standardize_columns(df)  # use same convention in both files
+    df = split_station_column(df)  # split station column in code, name
     df = rename_columns(df)  # rename columns for consistency with the codebase
     df = drop_columns(df, columns_to_keep)  # drop unused columns
     df.to_csv(csv_fname)

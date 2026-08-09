@@ -19,8 +19,8 @@ TMP_UNZIP_PATH = Path("data/tmp_unzip")
 TMP_UNZIP_CHECK_INS_PATH = TMP_UNZIP_PATH / "check_ins"
 TMP_UNZIP_CHECK_OUTS_PATH = TMP_UNZIP_PATH / "check_outs"
 
-CHECK_INS_COLUMNS = ["time", "station"]
-CHECK_OUTS_COLUMNS = ["time", "station", "events"]
+CHECK_INS_COLUMNS = ["time", "station_code", "station_name"]
+CHECK_OUTS_COLUMNS = ["time", "station_code", "station_name", "events"]
 
 PARAMS = {
     "INS": [CHECK_INS_URL, CHECK_INS_PATH, TMP_UNZIP_CHECK_INS_PATH, CHECK_INS_COLUMNS],
@@ -49,8 +49,8 @@ def run():
     print(dates)
     print(dsrun.id)
     dates = dates[:1]  # just testing
-    get_files(dates, *PARAMS["INS"])
-    get_files(dates, *PARAMS["OUTS"])
+    get_files(dates, *PARAMS["INS"], redownload=True)
+    get_files(dates, *PARAMS["OUTS"], redownload=True)
     cleanup(folders=[TMP_UNZIP_PATH])
     files, stations, ssrun = sample_stations(
         db, nfiles=2, nstations=4, paths=[CHECK_INS_PATH]
@@ -60,7 +60,7 @@ def run():
     # [(7007, 'NQS - Calle 38A Sur'), (7505, 'LEON XIII'), (7201, 'Guatoque -Veraguas'), (4100, 'Carrera 77')]
     print(ssrun.sampled_files_hash[:7])  # 6fc14a5
 
-    populate_check_ins(dsrun.id, ssrun.id)
+    populate_check_ins(dsrun.id, ssrun.id, CHECK_INS_PATH)
 
 
 if __name__ == "__main__":
