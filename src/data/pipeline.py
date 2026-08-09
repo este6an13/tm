@@ -2,9 +2,9 @@ from datetime import date
 from pathlib import Path
 
 from src.data.download import get_files
+from src.data.populate import populate_check_ins
 from src.data.sampling.dates import sample_dates
 from src.data.sampling.stations import sample_stations
-from src.data.populate import populate_check_ins
 from src.data.utils import cleanup
 from src.db.session import SessionLocal
 

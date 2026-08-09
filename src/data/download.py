@@ -7,9 +7,7 @@ from zipfile import ZipFile
 from pandas import read_csv
 from requests import get
 
-
-def get_date_str(dt):
-    return f"{dt.year}{dt.month:02d}{dt.day:02d}"
+from src.data.utils import get_date_str
 
 
 def csv_filename(fdir, fname):
