@@ -7,11 +7,13 @@ from src.data.utils import csv_filename, iso_to_date_str
 from src.db.repo import (
     CountsRepo,
     DateSamplingRunRepo,
+    ProcessedFileRepo,
     StationRepo,
     StationSamplingRunRepo,
 )
 from src.db.session import SessionLocal
 from src.utils.day_types import get_day_type
+from src.utils.logging import warning
 
 
 def window_min_str(window_int):
@@ -100,6 +102,10 @@ def validate_window(window_int, movement_type):
         raise ValueError("window_int must be a multiple of 15 for check-outs")
 
 
+def process_type_str(movement_type, window_int):
+    return f"{movement_type.lower()}-{window_int}-min"
+
+
 def populate_counts(
     dsrun_id: int,
     ssrun_id: int,
@@ -108,10 +114,12 @@ def populate_counts(
     window_int: int = 15,
     time_min: int = 400,
     time_max: int = 2300,
+    repopulate: bool = False,
 ):
 
     validate_window(window_int, movement_type)
     col = movement_type_to_col(movement_type)
+    process_type = process_type_str(movement_type, window_int)
 
     db = SessionLocal()
 
@@ -120,6 +128,7 @@ def populate_counts(
     ssrun_repo = StationSamplingRunRepo(db)
     dsrun_repo = DateSamplingRunRepo(db)
     counts_repo = CountsRepo(db)
+    pfile_repo = ProcessedFileRepo(db)
 
     # fetch station sampling results, and store the stations
     ssrun = ssrun_repo.get_by(id=ssrun_id)
@@ -129,6 +138,16 @@ def populate_counts(
     dsrun = dsrun_repo.get_by(id=dsrun_id)
     for dt_str in dsrun.sampled_dates:
         date_str = iso_to_date_str(dt_str)
+
+        is_processed = pfile_repo.is_processed(
+            filename=date_str,
+            process_type=process_type,
+        )
+
+        if not repopulate and is_processed:
+            warning(f"file {date_str} for process {process_type} is already processed")
+            continue
+
         df = read_csv(csv_filename(path, date_str))
         df = df[df["station_code"].isin(station_codes)]
         station_groups = df.groupby("station_code")
@@ -152,5 +171,7 @@ def populate_counts(
 
         counts_repo.bulk_upsert(all_counts, col=col)
 
-    # skip if file processed: check sample dates, use files repo
-    # mark file processed
+        pfile_repo.mark_processed(
+            filename=date_str,
+            process_type=process_type,
+        )

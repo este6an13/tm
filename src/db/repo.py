@@ -9,6 +9,7 @@ from src.db.models import (
     Base,
     Counts,
     DateSamplingRun,
+    ProcessedFile,
     Station,
     StationSamplingRun,
 )
@@ -40,12 +41,6 @@ class BaseRepo:
 class StationRepo(BaseRepo):
     model = Station
 
-    def create(self, station: Station) -> Station | None:
-        if self.exists(code=station.code):
-            warning(f"station with code {station.code} already exists")
-            return
-        return self.add(station)
-
     def get_by_codes(self, codes: list[int]) -> list[Station]:
         return self.db.query(self.model).filter(self.model.code.in_(codes)).all()
 
@@ -66,18 +61,6 @@ class StationRepo(BaseRepo):
 
 class CountsRepo(BaseRepo):
     model = Counts
-
-    def create(self, counts: Counts) -> Counts:
-        return self.add(counts)
-
-    def update(self, IN: int | None, OUT: int | None, **filters):
-        counts = self.get_by(**filters)
-        if counts:
-            if IN:
-                counts.count_in = IN
-            if OUT:
-                counts.count_out = OUT
-        self.db.commit()
 
     def _bulk_upsert_batch(
         self, batch: list[dict], col: str = Literal["count_in", "count_out"]
@@ -137,3 +120,27 @@ class StationSamplingRunRepo(BaseRepo):
             warning(f"station sampling run with params {params_str} already exists")
             return existing_run
         return self.add(run)
+
+
+class ProcessedFileRepo(BaseRepo):
+    model = ProcessedFile
+
+    def is_processed(self, **filters):
+        record = self.get_by(**filters)
+        return bool(record and record.processed)
+
+    def mark_processed(self, filename: str, process_type: str):
+        record = self.get_by(filename=filename, process_type=process_type)
+        if record:
+            record.processed = True
+        else:
+            record = self.add(
+                ProcessedFile(
+                    processed=True,
+                    filename=filename,
+                    process_type=process_type,
+                )
+            )
+        self.db.commit()
+        self.db.refresh(record)
+        return record
