@@ -2,7 +2,7 @@ from datetime import date
 from pathlib import Path
 
 from src.data.download import get_files
-from src.data.populate import populate_check_ins
+from src.data.populate import populate_counts
 from src.data.sampling.dates import sample_dates
 from src.data.sampling.stations import sample_stations
 from src.data.utils import cleanup
@@ -59,7 +59,8 @@ def run():
     # [(7007, 'NQS - Calle 38A Sur'), (7505, 'LEON XIII'), (7201, 'Guatoque -Veraguas'), (4100, 'Carrera 77')]
     print(ssrun.sampled_files_hash[:7])  # 6fc14a5
 
-    populate_check_ins(dsrun.id, ssrun.id, CHECK_INS_PATH, 15, 400, 2300)
+    populate_counts(dsrun.id, ssrun.id, CHECK_INS_PATH, "INS", 15, 400, 2300)
+    populate_counts(dsrun.id, ssrun.id, CHECK_OUTS_PATH, "OUTS", 15, 400, 2300)
 
 
 if __name__ == "__main__":

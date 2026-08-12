@@ -94,20 +94,17 @@ class CountsRepo(BaseRepo):
         )
         self.db.execute(stmt)
 
-    def bulk_upsert_in(self, counts: list[dict], batch_size: int = 800):
+    def bulk_upsert(
+        self,
+        counts: list[dict],
+        batch_size: int = 800,
+        col: str = Literal["count_in", "count_out"],
+    ):
         if not counts:
             return
         for i in range(0, len(counts), batch_size):
             batch = counts[i : i + batch_size]
-            self._bulk_upsert_batch(batch, "count_in")
-        self.db.commit()
-
-    def bulk_upsert_out(self, counts: list[dict], batch_size: int = 800):
-        if not counts:
-            return
-        for i in range(0, len(counts), batch_size):
-            batch = counts[i : i + batch_size]
-            self._bulk_upsert_batch(batch, "count_out")
+            self._bulk_upsert_batch(batch, col)
         self.db.commit()
 
 

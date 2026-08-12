@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pandas import read_csv, to_datetime
 
@@ -17,7 +18,12 @@ def window_min_str(window_int):
     return f"{window_int}min"
 
 
-def build_counts(counts_df, station_id, window_int):
+def build_counts(
+    counts_df,
+    station_id,
+    window_int,
+    col: str = Literal["count_in", "count_out"],
+):
 
     counts = []
     for _, row in counts_df.iterrows():
@@ -32,22 +38,29 @@ def build_counts(counts_df, station_id, window_int):
                 "time": row["time_int"],
                 "day_type": day_type,
                 "station_id": station_id,
-                "count_in": row["count_in"],
+                col: row[col],
                 "window_minutes": window_int,
             }
         )
 
-        return counts
+    return counts
 
 
-def compute_counts(station_df, station_id, window_int, time_min: int, time_max: int):
+def compute_counts(
+    station_df,
+    station_id,
+    window_int: int = 15,
+    time_min: int = 400,
+    time_max: int = 2300,
+    col: str = Literal["count_in", "count_out"],
+):
     if station_df.empty:
         return []
 
     station_df["time"] = to_datetime(station_df["time"])
     station_df = station_df.sort_values("time")
     station_df["window"] = station_df["time"].dt.floor(window_min_str(window_int))
-    counts_df = station_df.groupby("window").size().reset_index(name="count_in")
+    counts_df = station_df.groupby("window").size().reset_index(name=col)
 
     # Add time breakdown columns
     counts_df["year"] = counts_df["window"].dt.year
@@ -63,19 +76,43 @@ def compute_counts(station_df, station_id, window_int, time_min: int, time_max: 
     ]
 
     # Prepare dicts for bulk upsert
-    counts = build_counts(counts_df, station_id, window_int)
+    counts = build_counts(counts_df, station_id, window_int, col)
 
     return counts
 
 
-def populate_check_ins(
+def movement_type_to_col(movement_type: Literal["INS", "OUTS"]):
+    match movement_type:
+        case "INS":
+            return "count_in"
+        case "OUTS":
+            return "count_out"
+        case _:
+            raise ValueError("movement type must be either 'INS' or 'OUTS'")
+
+
+def validate_window(window_int, movement_type):
+    if window_int <= 0:
+        raise ValueError("window_int must be positive")
+    if not isinstance(window_int, int):
+        raise TypeError("window_int must be an integer")
+    if movement_type == "OUTS" and window_int % 15 != 0:
+        raise ValueError("window_int must be a multiple of 15 for check-outs")
+
+
+def populate_counts(
     dsrun_id: int,
     ssrun_id: int,
     path: Path,
-    window_int,
-    time_min,
-    time_max,
+    movement_type: Literal["INS", "OUTS"],
+    window_int: int = 15,
+    time_min: int = 400,
+    time_max: int = 2300,
 ):
+
+    validate_window(window_int, movement_type)
+    col = movement_type_to_col(movement_type)
+
     db = SessionLocal()
 
     # init repos
@@ -108,12 +145,12 @@ def populate_check_ins(
                 window_int,
                 time_min,
                 time_max,
+                col=col,
             )
 
             all_counts.extend(station_counts)
 
-        counts_repo.bulk_upsert_in(all_counts)
+        counts_repo.bulk_upsert(all_counts, col=col)
 
-    # counts for check-outs logic
     # skip if file processed: check sample dates, use files repo
     # mark file processed
