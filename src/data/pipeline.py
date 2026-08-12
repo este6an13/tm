@@ -59,7 +59,7 @@ def run():
     # [(7007, 'NQS - Calle 38A Sur'), (7505, 'LEON XIII'), (7201, 'Guatoque -Veraguas'), (4100, 'Carrera 77')]
     print(ssrun.sampled_files_hash[:7])  # 6fc14a5
 
-    populate_check_ins(dsrun.id, ssrun.id, CHECK_INS_PATH)
+    populate_check_ins(dsrun.id, ssrun.id, CHECK_INS_PATH, 15, 400, 2300)
 
 
 if __name__ == "__main__":

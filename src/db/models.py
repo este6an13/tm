@@ -47,8 +47,8 @@ class Counts(Base):
     window_minutes: Mapped[int] = mapped_column()
 
     # Aggregated counts
-    count_in: Mapped[int] = mapped_column()
-    count_out: Mapped[int] = mapped_column()
+    count_in: Mapped[int | None] = mapped_column()
+    count_out: Mapped[int | None] = mapped_column()
 
     # Relationships
     station = relationship("Station", back_populates="counts")
