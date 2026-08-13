@@ -27,7 +27,7 @@ def counts_dataframe(counts):
                 "month": c.month,
                 "day": c.day,
                 "time": c.time,
-                "day_of_week": c.day_of_week,
+                "day_type": c.day_type,
                 "count_in": c.count_in,
                 "count_out": c.count_out,
                 "station_id": c.station_id,
@@ -44,17 +44,17 @@ def counts_dataframe(counts):
 def t_counts_dataframe(counts_df, time_cols):
     t_counts = []
     for c in counts_df.itertuples(index=True):
-        key = (c.year, c.month, c.day, c.time, c.day_of_week, c.station_id)
+        key = (c.year, c.month, c.day, c.time, c.day_type, c.station_id)
         # if record deosn't exist, create it with a key to identify it
         if not any(tc["key"] == key for tc in t_counts):
             t_counts.append(
                 {
-                    "key": key,
+                    "key": key,  # used for identifying and searching
                     "year": c.year,
                     "month": c.month,
                     "day": c.day,
                     "time": c.time,
-                    "day_of_week": c.day_of_week,
+                    "day_type": c.day_type,
                     "station_id": c.station_id,
                     "station_code": c.station_code,
                     "station_name": c.station_name,
@@ -75,7 +75,7 @@ def t_counts_dataframe(counts_df, time_cols):
             "month",
             "day",
             "time",
-            "day_of_week",
+            "day_type",
             "station_id",
             "station_code",
             "station_name",
@@ -84,6 +84,14 @@ def t_counts_dataframe(counts_df, time_cols):
     )
 
     return t_counts_df
+
+
+def station_time_series(station_df):
+    ti_cols = sorted([col for col in station_df.columns if col.startswith("ti_")])
+    to_cols = sorted([col for col in station_df.columns if col.startswith("to_")])
+    ti_series = station_df[["day_type"] + ti_cols]
+    to_series = station_df[["day_type"] + to_cols]
+    return ti_series, to_series
 
 
 def separation():
@@ -96,13 +104,11 @@ def separation():
     counts = counts_repo.get_all()
     counts_df = counts_dataframe(counts)
     t_counts_df = t_counts_dataframe(counts_df, time_cols)
-    print(t_counts_df)
-    station_groups = counts_df.groupby("station_code")
+    station_groups = t_counts_df.groupby("station_code")
     time_cols = time_columns()
-    print(time_cols)
-    for station_code, station_df in station_groups:
-        print(station_df)
-        break
+    for _, station_df in station_groups:
+        _, _ = station_time_series(station_df)
+        # get matrices and do the computations
 
 
 separation()
