@@ -1,5 +1,8 @@
-from pandas import DataFrame, concat
-from scipy.spatial.distance import pdist, squareform
+from itertools import combinations
+
+from numpy import concatenate
+from pandas import DataFrame
+from scipy.spatial.distance import cdist, pdist, squareform
 
 from src.db.repo import CountsRepo
 from src.db.session import SessionLocal
@@ -100,6 +103,7 @@ def station_time_series(station_df):
 def separation():
 
     time_cols = time_columns()
+    day_type_pairs = list(combinations(["WD", "SA", "SU", "HO"], 2))
 
     db = SessionLocal()
 
@@ -112,6 +116,9 @@ def separation():
     for station_code, station_df in station_groups:
         ti_series_df, _ = station_time_series(station_df)
         ti_series_groups = ti_series_df.groupby("day_type")
+        # within group analysis
+        day_type_series = {}  # store them for between group analysis
+        Dwg_means = []
         for day_type, day_type_df in ti_series_groups:
             # per (station, day_type) we have a number of time series
             # a time series is a 1D vector of n components
@@ -122,36 +129,19 @@ def separation():
             # squareform turns this vector interpretable into a distance matrix
             # so for our use case we should alwsys use squareform(pdist(...))
             ti_series_matrix = day_type_df.drop(columns=["day_type"]).values
-            distances = pdist(ti_series_matrix, metric="euclidean")
-            print(station_code, day_type)
-            print(ti_series_matrix)
-            print(ti_series_matrix.shape)
-            print(distances.shape)
-            print(squareform(distances))
-            # we can report mean and std on these matrices
-            # I can plot the matrices for visbility
-            # this is within day type group analysis
+            Dwg = squareform(pdist(ti_series_matrix, metric="euclidean"))
+            Dwg_means.append(Dwg.mean())
+            day_type_series[day_type] = ti_series_matrix
+            # extract upper triangle excluding diagonal
 
-        # between groups separation
-        # I sample N rows per day type, to form N matrices
-        # each matrix has 1 row per distance type
-        # I'll perform the distance mean/std analysis on each
-        # at the end I'll average
-        # N should be adaptative based on size
-        # seed needs to be defined in constants
-        matrices = []
-        N = 1
-        samples = {}
-        for day_type, day_type_df in ti_series_groups:
-            samples[day_type] = day_type_df.drop(columns=["day_type"]).sample(
-                n=N, random_state=42
-            )
-        for i in range(N):
-            matrix = concat(
-                [samples[dt].iloc[i] for dt in ["HO", "SU", "SA", "WD"]]
-            ).values
-            matrices.append(matrix)
-            print(matrix)
+        distance_matrices = []
+        for g1, g2 in day_type_pairs:
+            Dbg = cdist(day_type_series[g1], day_type_series[g2], metric="euclidean")
+            distance_matrices.append(Dbg.ravel())  # ravel to 1D
+
+        Db = concatenate(distance_matrices)
+        for Dwg_mean in Dwg_means:
+            print(station_code, "R = ", Db.mean() / Dwg_mean)
 
         # decompose everything in smaller functions
 
