@@ -10,6 +10,8 @@ SA: Final = "SA"  # saturday
 SU: Final = "SU"  # sunday
 HO: Final = "HO"  # holiday
 
+DAY_TYPES = [WD, SA, SU, HO]
+
 
 def get_day_type(dt: date) -> DayType:
     if is_holiday(dt):
