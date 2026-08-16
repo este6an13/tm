@@ -3,11 +3,11 @@ from typing import Final, Literal
 
 from src.utils.co_holidays import is_holiday
 
-type DayType = Literal["WD", "SA", "SU", "HO"]
+type DayType = Literal["WD", "SA", "SH"]
 
 WD: Final = "WD"  # weekday
 SA: Final = "SA"  # saturday
-SH: Final = "SU"  # sunday / holiday
+SH: Final = "SH"  # sunday / holiday
 
 DAY_TYPES = [WD, SA, SH]
 

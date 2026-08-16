@@ -64,10 +64,11 @@ def analyze_station(station_df):
 
 def separation():
 
-    counts_df = load_counts()
+    counts_df = load_counts(station_id=1)
     station_groups = counts_df.groupby("station_code")
 
     for _, station_df in station_groups:
+        print(station_df["station_name"].head(1))
         analyze_station(station_df)
 
 

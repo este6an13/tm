@@ -28,6 +28,9 @@ class BaseRepo:
     def exists(self, **filters):
         return self.get_by(**filters) is not None
 
+    def get_all_by(self, **filters):
+        return self.db.query(self.model).filter_by(**filters)
+
     def get_all(self):
         return self.db.query(self.model).all()
 
