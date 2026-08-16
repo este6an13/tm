@@ -44,15 +44,21 @@ def run():
     db = SessionLocal()
     set_up_workspace()
     dates, dsrun = sample_dates(
-        db, start_date=date(2026, 1, 1), end_date=date(2026, 1, 10), n=2
+        db,
+        start_date=date(2025, 1, 1),
+        end_date=date(2025, 12, 31),
+        n=3,  # 1 year, 3 samples per month is 36 dates per day type
     )
     print(dates)
     print(dsrun.id)
+    # if you stop execution amid download, you may end up with unprocessed files
+    # and that breaks execution downwards
+    # you can manually remove those files and start the script again
     get_files(dates, *PARAMS["INS"])
     get_files(dates, *PARAMS["OUTS"])
     cleanup(folders=[TMP_UNZIP_PATH])
     files, stations, ssrun = sample_stations(
-        db, nfiles=2, nstations=4, paths=[CHECK_INS_PATH]
+        db, nfiles=4, nstations=30, paths=[CHECK_INS_PATH]
     )
     print(files)  # ['data\\check_ins\\daily\\20260101.csv']
     print(stations)
