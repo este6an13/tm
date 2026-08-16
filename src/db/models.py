@@ -38,7 +38,7 @@ class Counts(Base):
     time: Mapped[int] = mapped_column()  # e.g., 400 → 04:00, 2300 → 23:00
 
     # Day type classification
-    day_type: Mapped[str] = mapped_column(String(20))  # WD, SA, SU, HO
+    day_type: Mapped[str] = mapped_column(String(20))  # WD, SA, SH
 
     # FK to station
     station_id: Mapped[int] = mapped_column(ForeignKey("stations.id"))

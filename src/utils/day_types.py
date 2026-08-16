@@ -7,18 +7,15 @@ type DayType = Literal["WD", "SA", "SU", "HO"]
 
 WD: Final = "WD"  # weekday
 SA: Final = "SA"  # saturday
-SU: Final = "SU"  # sunday
-HO: Final = "HO"  # holiday
+SH: Final = "SU"  # sunday / holiday
 
-DAY_TYPES = [WD, SA, SU, HO]
+DAY_TYPES = [WD, SA, SH]
 
 
 def get_day_type(dt: date) -> DayType:
-    if is_holiday(dt):
-        return HO
+    if is_holiday(dt) or dt.weekday() == 6:
+        return SH
     elif dt.weekday() == 5:
         return SA
-    elif dt.weekday() == 6:
-        return SU
     else:
         return WD
