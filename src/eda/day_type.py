@@ -1,6 +1,7 @@
 from itertools import combinations
 
-from numpy import concatenate, triu
+from numpy import concatenate, quantile, triu
+from numpy.random import choice
 from scipy.spatial.distance import cdist, pdist, squareform
 
 from src.data.load import load_counts
@@ -19,12 +20,19 @@ def station_time_series(station_df):
     return ti_series, to_series
 
 
+# sample N rows with replacement
+def bootstrap(arr):
+    N = len(arr)
+    idx = choice(range(N), N)
+    return arr[idx]
+
+
 def station_day_type_matrices(t_series_df):
     sg_matrices = {}
     t_series_groups = t_series_df.groupby("day_type")
     for day_type, day_type_df in t_series_groups:
         ti_series_matrix = day_type_df.drop(columns=["day_type"]).values
-        sg_matrices[day_type] = ti_series_matrix
+        sg_matrices[day_type] = bootstrap(ti_series_matrix)
     return sg_matrices
 
 
@@ -49,18 +57,37 @@ def between_groups_analysis(sg_matrices):
     return dist_matrix.mean()
 
 
-def analyze_time_series(t_series_df):
+def _analyze_time_series(t_series_df):
     sg_matrices = station_day_type_matrices(t_series_df)
     w_means = within_groups_analysis(sg_matrices)
     b_mean = between_groups_analysis(sg_matrices)
+    res = []
     for day_type, w_mean in w_means.items():
-        print(day_type, "R = ", b_mean / w_mean)
+        R = b_mean / w_mean
+        res.append((day_type, R))
+    return res
 
 
-def analyze_station(station_df):
+def analyze_time_series(t_series_df, bootstrap_iter=1):
+    total_res = {}
+
+    for _ in range(bootstrap_iter):
+        # perform 1 bootstrap iteration
+        res = _analyze_time_series(t_series_df)
+        # aggregate results
+        for day_type, R in res:
+            total_res.setdefault(day_type, []).append(R)
+
+    # compute CI per day_type
+    for day_type, arr in total_res.items():
+        q025, q975 = quantile(arr, [0.025, 0.975])
+        print(day_type, q025, q975)
+
+
+def analyze_station(station_df, bootstrap_iter=1):
     ti_series_df, to_series_df = station_time_series(station_df)
-    analyze_time_series(ti_series_df)  # check-ins
-    analyze_time_series(to_series_df)  # check-outs
+    analyze_time_series(ti_series_df, bootstrap_iter)  # check-ins
+    analyze_time_series(to_series_df, bootstrap_iter)  # check-outs
 
 
 def separation():
@@ -70,7 +97,7 @@ def separation():
 
     for _, station_df in station_groups:
         print(station_df["station_name"].head(1))
-        analyze_station(station_df)
+        analyze_station(station_df, bootstrap_iter=1)
 
 
 separation()
