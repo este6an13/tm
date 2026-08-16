@@ -48,6 +48,17 @@ def build_counts(
     return counts
 
 
+def compute_count_column(station_df, col):
+    if col == "count_in":
+        # each row is one event
+        return station_df.groupby("window").size().reset_index(name=col)
+    elif col == "count_out":
+        # one row has multiple events, so we add them
+        return station_df.groupby("window")["events"].sum().reset_index(name=col)
+    else:
+        raise ValueError("col must be either count_in or count_out")
+
+
 def compute_counts(
     station_df,
     station_id,
@@ -62,7 +73,7 @@ def compute_counts(
     station_df["time"] = to_datetime(station_df["time"])
     station_df = station_df.sort_values("time")
     station_df["window"] = station_df["time"].dt.floor(window_min_str(window_int))
-    counts_df = station_df.groupby("window").size().reset_index(name=col)
+    counts_df = compute_count_column(station_df, col)
 
     # Add time breakdown columns
     counts_df["year"] = counts_df["window"].dt.year
