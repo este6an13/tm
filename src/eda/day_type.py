@@ -1,6 +1,6 @@
 from itertools import combinations
 
-from numpy import concatenate, quantile, triu
+from numpy import concatenate, median, percentile, quantile, triu
 from numpy.random import choice
 from scipy.spatial.distance import cdist, pdist, squareform
 
@@ -8,6 +8,7 @@ from src.data.load import load_counts
 from src.utils.day_types import DAY_TYPES
 
 DAY_TYPE_PAIRS = list(combinations(DAY_TYPES, 2))
+BOOTSTRAP_ITER = 100
 
 
 def station_time_series(station_df):
@@ -21,18 +22,20 @@ def station_time_series(station_df):
 
 
 # sample N rows with replacement
-def bootstrap(arr):
+def sample_with_replacement(arr):
     N = len(arr)
     idx = choice(range(N), N)
     return arr[idx]
 
 
-def station_day_type_matrices(t_series_df):
+def station_day_type_matrices(t_series_df, bootstrap=False):
     sg_matrices = {}
     t_series_groups = t_series_df.groupby("day_type")
     for day_type, day_type_df in t_series_groups:
         ti_series_matrix = day_type_df.drop(columns=["day_type"]).values
-        sg_matrices[day_type] = bootstrap(ti_series_matrix)
+        sg_matrices[day_type] = (
+            sample_with_replacement(ti_series_matrix) if bootstrap else ti_series_matrix
+        )
     return sg_matrices
 
 
@@ -57,8 +60,8 @@ def between_groups_analysis(sg_matrices):
     return dist_matrix.mean()
 
 
-def _analyze_time_series(t_series_df):
-    sg_matrices = station_day_type_matrices(t_series_df)
+def _analyze_time_series(t_series_df, bootstrap=False):
+    sg_matrices = station_day_type_matrices(t_series_df, bootstrap)
     w_means = within_groups_analysis(sg_matrices)
     b_mean = between_groups_analysis(sg_matrices)
     res = []
@@ -68,36 +71,86 @@ def _analyze_time_series(t_series_df):
     return res
 
 
-def analyze_time_series(t_series_df, bootstrap_iter=1):
-    total_res = {}
-
-    for _ in range(bootstrap_iter):
+def repeat_time_series_analysis(t_series_df):
+    results = {}
+    intervals = {}
+    for _ in range(BOOTSTRAP_ITER):
         # perform 1 bootstrap iteration
-        res = _analyze_time_series(t_series_df)
+        partial_result = _analyze_time_series(t_series_df, bootstrap=True)
         # aggregate results
-        for day_type, R in res:
-            total_res.setdefault(day_type, []).append(R)
+        for day_type, R in partial_result:
+            results.setdefault(day_type, []).append(R)
 
     # compute CI per day_type
-    for day_type, arr in total_res.items():
+    for day_type, arr in results.items():
         q025, q975 = quantile(arr, [0.025, 0.975])
-        print(day_type, q025, q975)
+        intervals[day_type] = (q025, q975)
+
+    return intervals
 
 
-def analyze_station(station_df, bootstrap_iter=1):
+def analyze_time_series(t_series_df, bootstrap=False):
+    obs = _analyze_time_series(t_series_df)
+    if bootstrap:
+        intervals = repeat_time_series_analysis(t_series_df)
+
+    # organize results
+    results = {}
+    for day_type, R in obs:
+        results[day_type] = (R, intervals[day_type])
+    return results
+
+
+def analyze_station(station_df, bootstrap=False):
     ti_series_df, to_series_df = station_time_series(station_df)
-    analyze_time_series(ti_series_df, bootstrap_iter)  # check-ins
-    analyze_time_series(to_series_df, bootstrap_iter)  # check-outs
+    ins_results = analyze_time_series(ti_series_df, bootstrap)  # check-ins
+    outs_results = analyze_time_series(to_series_df, bootstrap)  # check-outs
+
+    return ins_results, outs_results
 
 
 def separation():
 
-    counts_df = load_counts(station_id=1)
+    counts_df = load_counts()
     station_groups = counts_df.groupby("station_code")
+
+    ins_agg_results = {}
+    outs_agg_results = {}
 
     for _, station_df in station_groups:
         print(station_df["station_name"].head(1))
-        analyze_station(station_df, bootstrap_iter=1)
+        ins_results, outs_results = analyze_station(station_df, bootstrap=True)
+
+        # results are of the form {'WD': (observed R, (lo, hi)), ...}
+        # (lo, hi) is the confidence interval constructed with bootstrap
+        # observed R is the actual R per day type (between/within) computed from the
+        # time series dataset without bootstrap sampling (that is the original dataset)
+        for day_type in ins_results:
+            ins_agg_results.setdefault(day_type, []).append(ins_results[day_type])
+            outs_agg_results.setdefault(day_type, []).append(outs_results[day_type])
+
+            print("ins", day_type, ins_results[day_type])
+            print("outs", day_type, outs_results[day_type])
+
+    # these results are a table, each row a day type
+    # the median R is the median observed R across stations
+    # p is the proportion of stations with lower CI value > 1
+
+    # For check-ins
+    for day_type, results in ins_agg_results.items():
+        median_R = median([R for R, _ in results])
+        q25, q75 = percentile([R for R, _ in results], [25, 75])
+        p = sum([1 if CI[0] > 1 else 0 for _, CI in results]) / len(station_groups)
+
+        print(day_type, median_R, q25, q75, p)
+
+    # for check-outs
+    for day_type, results in outs_agg_results.items():
+        median_R = median([R for R, _ in results])
+        q25, q75 = percentile([R for R, _ in results], [25, 75])
+        p = sum([1 if CI[0] > 1 else 0 for _, CI in results]) / len(station_groups)
+
+        print(day_type, median_R, q25, q75, p)
 
 
 separation()
