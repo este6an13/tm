@@ -2,14 +2,15 @@ from itertools import combinations
 
 from numpy import concatenate, median, percentile, quantile, triu
 from numpy.random import choice
-from pandas import DataFrame
 from scipy.spatial.distance import cdist, pdist, squareform
 
 from src.data.load import load_counts
+from src.eda.utils import artifacts
 from src.utils.day_types import DAY_TYPES
 
+BOOTSTRAP_ITER = 5000  # this will be considered a config value
+
 DAY_TYPE_PAIRS = list(combinations(DAY_TYPES, 2))
-BOOTSTRAP_ITER = 100
 
 
 def station_time_series(station_df):
@@ -110,52 +111,28 @@ def analyze_station(station_df, bootstrap=False):
     return ins_results, outs_results
 
 
-def artifact_ins_sg_r_ci_table(ins_sg_r_ci_table):
-    df = DataFrame(
-        [
-            {
-                "station_code": r[0],
-                "station_name": r[1],
-                "day_type": r[2],
-                "R_obs": round(r[3], 5),
-                "q_025": round(r[4], 5),
-                "q_975": round(r[5], 5),
-            }
-            for r in ins_sg_r_ci_table
-        ]
+def analysis():
+
+    TIME_MIN = 400
+    TIME_MAX = 2300
+    WINDOW_MINUTES = 15
+
+    counts_df = load_counts(
+        time_min=TIME_MIN,
+        time_max=TIME_MAX,
+        station_ids=[1, 2, 6, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25, 29],
+        window_minutes=WINDOW_MINUTES,
     )
-    df.to_csv("artifacts/eda/day_type/ins_sg_r_ci_table.csv")
-
-
-def artifact_outs_sg_r_ci_table(outs_sg_r_ci_table):
-    df = DataFrame(
-        [
-            {
-                "station_code": r[0],
-                "station_name": r[1],
-                "day_type": r[2],
-                "R_obs": round(r[3], 5),
-                "q_025": round(r[4], 5),
-                "q_975": round(r[5], 5),
-            }
-            for r in outs_sg_r_ci_table
-        ]
-    )
-    df.to_csv("artifacts/eda/day_type/outs_sg_r_ci_table.csv")
-
-
-def separation():
-
-    counts_df = load_counts(station_id=1)
-    station_groups = counts_df.groupby("station_code")
+    station_groups = counts_df.groupby("station_id")
 
     ins_agg_results = {}
     outs_agg_results = {}
 
-    ins_sg_r_ci_table = []
-    outs_sg_r_ci_table = []
+    _sg_r_ci_table_ins = []
+    _sg_r_ci_table_outs = []
 
-    for station_code, station_df in station_groups:
+    for station_id, station_df in station_groups:
+        station_code = station_df.iloc[0]["station_code"]
         station_name = station_df.iloc[0]["station_name"]
         ins_results, outs_results = analyze_station(station_df, bootstrap=True)
 
@@ -167,8 +144,10 @@ def separation():
             ins_agg_results.setdefault(day_type, []).append(ins_results[day_type])
             outs_agg_results.setdefault(day_type, []).append(outs_results[day_type])
 
-            ins_sg_r_ci_table.append(
+            # building sg_r_ci_table_ins artifact input
+            _sg_r_ci_table_ins.append(
                 (
+                    station_id,
                     station_code,
                     station_name,
                     day_type,
@@ -178,11 +157,12 @@ def separation():
                 )
             )
 
-            print(ins_sg_r_ci_table)
-            artifact_ins_sg_r_ci_table(ins_sg_r_ci_table)
+            artifacts.sg_r_ci_table_ins(_sg_r_ci_table_ins)  # persistance
 
-            outs_sg_r_ci_table.append(
+            # building sg_r_ci_table_outs artifact input
+            _sg_r_ci_table_outs.append(
                 (
+                    station_id,
                     station_code,
                     station_name,
                     day_type,
@@ -192,8 +172,7 @@ def separation():
                 )
             )
 
-            print(outs_sg_r_ci_table)
-            artifact_outs_sg_r_ci_table(outs_sg_r_ci_table)
+            artifacts.sg_r_ci_table_outs(_sg_r_ci_table_outs)  # persistance
 
     # these results are a table, each row a day type
     # the median R is the median observed R across stations
@@ -216,4 +195,5 @@ def separation():
         print(day_type, median_R, q25, q75, p)
 
 
-separation()
+if __name__ == "__main__":
+    analysis()

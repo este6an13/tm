@@ -87,11 +87,23 @@ def t_counts_dataframe(counts_df, time_cols):
     return t_counts_df
 
 
-def load_counts(**filters):
+def load_counts(time_min: int = 400, time_max: int = 2300, station_ids=None, **filters):
     db = SessionLocal()
 
     counts_repo = CountsRepo(db)
-    counts = counts_repo.get_all_by(**filters)
+    counts = counts_repo.get_by(
+        station_ids=station_ids,
+        time_min=time_min,
+        time_max=time_max,
+        **filters,
+    )
     counts_df = counts_dataframe(counts)
-    t_counts_df = t_counts_dataframe(counts_df, time_columns())
+    t_counts_df = t_counts_dataframe(
+        counts_df,
+        time_columns(
+            time_min=time_min,
+            time_max=time_max,
+            window_minutes=filters.get("window_minutes"),
+        ),
+    )
     return t_counts_df

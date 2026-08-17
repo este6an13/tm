@@ -29,7 +29,7 @@ class BaseRepo:
         return self.get_by(**filters) is not None
 
     def get_all_by(self, **filters):
-        return self.db.query(self.model).filter_by(**filters)
+        return self.db.query(self.model).filter_by(**filters).all()
 
     def get_all(self):
         return self.db.query(self.model).all()
@@ -92,6 +92,20 @@ class CountsRepo(BaseRepo):
             batch = counts[i : i + batch_size]
             self._bulk_upsert_batch(batch, col)
         self.db.commit()
+
+    def get_by(self, station_ids=None, time_min=400, time_max=2300, **filters):
+        query = self.db.query(self.model)
+        if station_ids is not None:
+            query = query.filter(self.model.station_id.in_(station_ids))
+
+        return (
+            query.filter(
+                self.model.time >= time_min,
+                self.model.time <= time_max,
+            )
+            .filter_by(**filters)
+            .all()
+        )
 
 
 class DateSamplingRunRepo(BaseRepo):
