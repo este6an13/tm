@@ -2,6 +2,7 @@ from itertools import combinations
 
 from numpy import concatenate, median, percentile, quantile, triu
 from numpy.random import choice
+from pandas import DataFrame
 from scipy.spatial.distance import cdist, pdist, squareform
 
 from src.data.load import load_counts
@@ -109,16 +110,53 @@ def analyze_station(station_df, bootstrap=False):
     return ins_results, outs_results
 
 
+def artifact_ins_sg_r_ci_table(ins_sg_r_ci_table):
+    df = DataFrame(
+        [
+            {
+                "station_code": r[0],
+                "station_name": r[1],
+                "day_type": r[2],
+                "R_obs": round(r[3], 5),
+                "q_025": round(r[4], 5),
+                "q_975": round(r[5], 5),
+            }
+            for r in ins_sg_r_ci_table
+        ]
+    )
+    df.to_csv("artifacts/eda/day_type/ins_sg_r_ci_table.csv")
+
+
+def artifact_outs_sg_r_ci_table(outs_sg_r_ci_table):
+    df = DataFrame(
+        [
+            {
+                "station_code": r[0],
+                "station_name": r[1],
+                "day_type": r[2],
+                "R_obs": round(r[3], 5),
+                "q_025": round(r[4], 5),
+                "q_975": round(r[5], 5),
+            }
+            for r in outs_sg_r_ci_table
+        ]
+    )
+    df.to_csv("artifacts/eda/day_type/outs_sg_r_ci_table.csv")
+
+
 def separation():
 
-    counts_df = load_counts()
+    counts_df = load_counts(station_id=1)
     station_groups = counts_df.groupby("station_code")
 
     ins_agg_results = {}
     outs_agg_results = {}
 
-    for _, station_df in station_groups:
-        print(station_df["station_name"].head(1))
+    ins_sg_r_ci_table = []
+    outs_sg_r_ci_table = []
+
+    for station_code, station_df in station_groups:
+        station_name = station_df.iloc[0]["station_name"]
         ins_results, outs_results = analyze_station(station_df, bootstrap=True)
 
         # results are of the form {'WD': (observed R, (lo, hi)), ...}
@@ -129,8 +167,33 @@ def separation():
             ins_agg_results.setdefault(day_type, []).append(ins_results[day_type])
             outs_agg_results.setdefault(day_type, []).append(outs_results[day_type])
 
-            print("ins", day_type, ins_results[day_type])
-            print("outs", day_type, outs_results[day_type])
+            ins_sg_r_ci_table.append(
+                (
+                    station_code,
+                    station_name,
+                    day_type,
+                    ins_results[day_type][0],  # observed R
+                    ins_results[day_type][1][0],  # CI low
+                    ins_results[day_type][1][1],  # CI high
+                )
+            )
+
+            print(ins_sg_r_ci_table)
+            artifact_ins_sg_r_ci_table(ins_sg_r_ci_table)
+
+            outs_sg_r_ci_table.append(
+                (
+                    station_code,
+                    station_name,
+                    day_type,
+                    outs_results[day_type][0],  # observed R
+                    outs_results[day_type][1][0],  # CI low
+                    outs_results[day_type][1][1],  # CI high
+                )
+            )
+
+            print(outs_sg_r_ci_table)
+            artifact_outs_sg_r_ci_table(outs_sg_r_ci_table)
 
     # these results are a table, each row a day type
     # the median R is the median observed R across stations

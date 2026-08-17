@@ -41,16 +41,25 @@ def set_up_workspace():
 
 
 def run():
+
+    # the actual pipeline params that should be configurable
+    START_DATE = date(2025, 1, 1)
+    END_DATE = date(2025, 12, 31)
+    STRATUM_SIZE = 3
+    N_FILES = 4
+    N_STATIONS = 30
+    TIME_MIN = 400
+    TIME_MAX = 2300
+    WINDOW_MINUTES = 15
+
     db = SessionLocal()
     set_up_workspace()
     dates, dsrun = sample_dates(
         db,
-        start_date=date(2025, 1, 1),
-        end_date=date(2025, 12, 31),
-        n=3,  # 1 year, 3 samples per month is 36 dates per day type
+        start_date=START_DATE,
+        end_date=END_DATE,
+        n=STRATUM_SIZE,  # 1 year, 3 samples per month is 36 dates per day type
     )
-    print(dates)
-    print(dsrun.id)
     # if you stop execution amid download, you may end up with unprocessed files
     # and that breaks execution downwards
     # you can manually remove those files and start the script again
@@ -58,15 +67,17 @@ def run():
     get_files(dates, *PARAMS["OUTS"])
     cleanup(folders=[TMP_UNZIP_PATH])
     files, stations, ssrun = sample_stations(
-        db, nfiles=4, nstations=30, paths=[CHECK_INS_PATH]
+        db, nfiles=N_FILES, nstations=N_STATIONS, paths=[CHECK_INS_PATH]
     )
-    print(files)  # ['data\\check_ins\\daily\\20260101.csv']
+    print(files)
     print(stations)
-    # [(7007, 'NQS - Calle 38A Sur'), (7505, 'LEON XIII'), (7201, 'Guatoque -Veraguas'), (4100, 'Carrera 77')]
-    print(ssrun.sampled_files_hash[:7])  # 6fc14a5
 
-    populate_counts(dsrun.id, ssrun.id, CHECK_INS_PATH, "INS", 15, 400, 2300)
-    populate_counts(dsrun.id, ssrun.id, CHECK_OUTS_PATH, "OUTS", 15, 400, 2300)
+    populate_counts(
+        dsrun.id, ssrun.id, CHECK_INS_PATH, "INS", WINDOW_MINUTES, TIME_MIN, TIME_MAX
+    )
+    populate_counts(
+        dsrun.id, ssrun.id, CHECK_OUTS_PATH, "OUTS", WINDOW_MINUTES, TIME_MIN, TIME_MAX
+    )
 
 
 if __name__ == "__main__":
