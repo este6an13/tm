@@ -117,16 +117,17 @@ def analysis():
     TIME_MAX = 2300
     WINDOW_MINUTES = 15
 
+    # station_ids=[1, 2, 6, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25, 29],
     counts_df = load_counts(
         time_min=TIME_MIN,
         time_max=TIME_MAX,
-        station_ids=[1, 2, 6, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25, 29],
+        station_ids=[1],
         window_minutes=WINDOW_MINUTES,
     )
     station_groups = counts_df.groupby("station_id")
 
-    ins_agg_results = {}
-    outs_agg_results = {}
+    INS_G_RESULTS = {}
+    OUTS_G_RESULTS = {}
 
     _sg_r_ci_table_ins = []
     _sg_r_ci_table_outs = []
@@ -134,65 +135,68 @@ def analysis():
     for station_id, station_df in station_groups:
         station_code = station_df.iloc[0]["station_code"]
         station_name = station_df.iloc[0]["station_name"]
-        ins_results, outs_results = analyze_station(station_df, bootstrap=True)
+        INS_SG_RESULTS, OUTS_SG_RESULTS = analyze_station(station_df, bootstrap=True)
 
         # results are of the form {'WD': (observed R, (lo, hi)), ...}
         # (lo, hi) is the confidence interval constructed with bootstrap
         # observed R is the actual R per day type (between/within) computed from the
         # time series dataset without bootstrap sampling (that is the original dataset)
-        for day_type in ins_results:
-            ins_agg_results.setdefault(day_type, []).append(ins_results[day_type])
-            outs_agg_results.setdefault(day_type, []).append(outs_results[day_type])
+        for day_type in INS_SG_RESULTS:
+            INS_G_RESULTS.setdefault(day_type, []).append(INS_SG_RESULTS[day_type])
+            OUTS_G_RESULTS.setdefault(day_type, []).append(OUTS_SG_RESULTS[day_type])
+
+            R_obs, q_025, q_975 = (
+                INS_SG_RESULTS[day_type][0],
+                INS_SG_RESULTS[day_type][1][0],
+                INS_SG_RESULTS[day_type][1][1],
+            )
 
             # building sg_r_ci_table_ins artifact input
             _sg_r_ci_table_ins.append(
-                (
-                    station_id,
-                    station_code,
-                    station_name,
-                    day_type,
-                    ins_results[day_type][0],  # observed R
-                    ins_results[day_type][1][0],  # CI low
-                    ins_results[day_type][1][1],  # CI high
-                )
+                (station_id, station_code, station_name, day_type, R_obs, q_025, q_975)
             )
 
-            artifacts.sg_r_ci_table_ins(_sg_r_ci_table_ins)  # persistance
+            R_obs, q_025, q_975 = (
+                OUTS_SG_RESULTS[day_type][0],
+                OUTS_SG_RESULTS[day_type][1][0],
+                OUTS_SG_RESULTS[day_type][1][1],
+            )
 
             # building sg_r_ci_table_outs artifact input
             _sg_r_ci_table_outs.append(
-                (
-                    station_id,
-                    station_code,
-                    station_name,
-                    day_type,
-                    outs_results[day_type][0],  # observed R
-                    outs_results[day_type][1][0],  # CI low
-                    outs_results[day_type][1][1],  # CI high
-                )
+                (station_id, station_code, station_name, day_type, R_obs, q_025, q_975)
             )
 
-            artifacts.sg_r_ci_table_outs(_sg_r_ci_table_outs)  # persistance
+    # persistance
+    artifacts.sg_r_ci_table_ins(_sg_r_ci_table_ins)
+    artifacts.sg_r_ci_table_outs(_sg_r_ci_table_outs)
+
+    _g_mr_ci_p_table_ins = []
+    _g_mr_ci_p_table_outs = []
 
     # these results are a table, each row a day type
     # the median R is the median observed R across stations
     # p is the proportion of stations with lower CI value > 1
 
     # For check-ins
-    for day_type, results in ins_agg_results.items():
+    for day_type, results in INS_G_RESULTS.items():
         median_R = median([R for R, _ in results])
         q25, q75 = percentile([R for R, _ in results], [25, 75])
         p = sum([1 if CI[0] > 1 else 0 for _, CI in results]) / len(station_groups)
 
-        print(day_type, median_R, q25, q75, p)
+        _g_mr_ci_p_table_ins.append((day_type, median_R, q25, q75, p))
 
     # for check-outs
-    for day_type, results in outs_agg_results.items():
+    for day_type, results in OUTS_G_RESULTS.items():
         median_R = median([R for R, _ in results])
         q25, q75 = percentile([R for R, _ in results], [25, 75])
         p = sum([1 if CI[0] > 1 else 0 for _, CI in results]) / len(station_groups)
 
-        print(day_type, median_R, q25, q75, p)
+        _g_mr_ci_p_table_outs.append((day_type, median_R, q25, q75, p))
+
+    # persistance
+    artifacts.g_mr_ci_p_table_ins(_g_mr_ci_p_table_ins)
+    artifacts.g_mr_ci_p_table_outs(_g_mr_ci_p_table_outs)
 
 
 if __name__ == "__main__":
