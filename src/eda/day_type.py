@@ -1,14 +1,18 @@
 from itertools import combinations
 
 from numpy import concatenate, median, percentile, quantile, triu
-from numpy.random import choice
+from numpy.random import default_rng
 from scipy.spatial.distance import cdist, pdist, squareform
 
 from src.data.load import load_counts
 from src.eda.utils import artifacts
 from src.utils.day_types import DAY_TYPES
+from src.utils.seeds import SEED_BOOTSTRAP_SG_TIME_SERIES
 
 BOOTSTRAP_ITER = 5000  # this will be considered a config value
+
+# analysis param
+rng = default_rng(SEED_BOOTSTRAP_SG_TIME_SERIES)
 
 DAY_TYPE_PAIRS = list(combinations(DAY_TYPES, 2))
 
@@ -26,7 +30,7 @@ def station_time_series(station_df):
 # sample N rows with replacement
 def sample_with_replacement(arr):
     N = len(arr)
-    idx = choice(range(N), N)
+    idx = rng.choice(range(N), N)
     return arr[idx]
 
 
@@ -119,6 +123,7 @@ def analysis():
     WINDOW_MINUTES = 15
     # STATION_IDS = [1, 2, 6, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25, 29]
     STATION_IDS = [1]
+    # SEED_BOOTSTRAP_SG_TIME_SERIES is another param
 
     # station_ids=,
     counts_df = load_counts(
