@@ -113,15 +113,18 @@ def analyze_station(station_df, bootstrap=False):
 
 def analysis():
 
+    # analysis params
     TIME_MIN = 400
     TIME_MAX = 2300
     WINDOW_MINUTES = 15
+    # STATION_IDS = [1, 2, 6, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25, 29]
+    STATION_IDS = [1]
 
-    # station_ids=[1, 2, 6, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25, 29],
+    # station_ids=,
     counts_df = load_counts(
         time_min=TIME_MIN,
         time_max=TIME_MAX,
-        station_ids=[1],
+        station_ids=STATION_IDS,
         window_minutes=WINDOW_MINUTES,
     )
     station_groups = counts_df.groupby("station_id")

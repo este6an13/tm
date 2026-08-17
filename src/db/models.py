@@ -143,3 +143,21 @@ class StationSamplingRun(Base):
             name="uq_station_sampling_run_params",
         ),
     )
+
+
+class Artifact(Base):
+    __tablename__ = "artifacts"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    name: Mapped[str] = mapped_column(String(50))
+    params: Mapped[dict] = mapped_column(JSON)
+    params_hash: Mapped[str] = mapped_column(String(64))
+
+    __table_args__ = (
+        UniqueConstraint(
+            "name",
+            "params_hash",
+            name="uq_artifact_name_params_hash",
+        ),
+    )
