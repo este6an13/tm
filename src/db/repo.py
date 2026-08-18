@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from src.db.models import (
     COUNTS_UQ_COLS,
     STATION_UQ_COLS,
+    Artifact,
     Base,
     Counts,
     DateSamplingRun,
@@ -161,3 +162,17 @@ class ProcessedFileRepo(BaseRepo):
         self.db.commit()
         self.db.refresh(record)
         return record
+
+
+class ArtifactRepo(BaseRepo):
+    model = Artifact
+
+    def create(self, artifact: Artifact) -> Artifact:
+        existing_artifact = self.get_by(
+            name=artifact.name, params_hash=artifact.params_hash
+        )
+        if existing_artifact:
+            params_str = f"name={artifact.name}, params_hash={artifact.params_hash[:7]}"
+            warning(f"artifact with params {params_str} already exist")
+            return existing_artifact
+        return self.add(artifact)

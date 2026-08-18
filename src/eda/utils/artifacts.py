@@ -1,7 +1,11 @@
 from pandas import DataFrame
 
+from src.db.models import Artifact
+from src.db.repo import ArtifactRepo
+from src.db.session import SessionLocal
 
-def sg_r_ci_table_ins(_sg_r_ci_table_ins):
+
+def sg_r_ci_table_ins(_sg_r_ci_table_ins, params_str, params_hash):
     df = DataFrame(
         [
             {
@@ -16,10 +20,14 @@ def sg_r_ci_table_ins(_sg_r_ci_table_ins):
             for r in _sg_r_ci_table_ins
         ]
     )
-    df.to_csv("artifacts/eda/day_type/sg_r_ci_table_ins.csv")
+    df.to_csv(f"artifacts/eda/day_type/{params_hash[:7]}_sg_r_ci_table_ins.csv")
+
+    ArtifactRepo(SessionLocal()).create(
+        Artifact(name="sg_r_ci_table_ins", params=params_str, params_hash=params_hash)
+    )
 
 
-def sg_r_ci_table_outs(_sg_r_ci_table_outs):
+def sg_r_ci_table_outs(_sg_r_ci_table_outs, params_str, params_hash):
     df = DataFrame(
         [
             {
@@ -34,10 +42,14 @@ def sg_r_ci_table_outs(_sg_r_ci_table_outs):
             for r in _sg_r_ci_table_outs
         ]
     )
-    df.to_csv("artifacts/eda/day_type/sg_r_ci_table_outs.csv")
+    df.to_csv(f"artifacts/eda/day_type/{params_hash[:7]}_sg_r_ci_table_outs.csv")
+
+    ArtifactRepo(SessionLocal()).create(
+        Artifact(name="sg_r_ci_table_outs", params=params_str, params_hash=params_hash)
+    )
 
 
-def g_mr_ci_p_table_ins(_g_mr_ci_p_table_ins):
+def g_mr_ci_p_table_ins(_g_mr_ci_p_table_ins, params_str, params_hash):
     df = DataFrame(
         [
             {
@@ -50,10 +62,14 @@ def g_mr_ci_p_table_ins(_g_mr_ci_p_table_ins):
             for r in _g_mr_ci_p_table_ins
         ]
     )
-    df.to_csv("artifacts/eda/day_type/g_mr_ci_p_table_ins.csv")
+    df.to_csv(f"artifacts/eda/day_type/{params_hash[:7]}_g_mr_ci_p_table_ins.csv")
+
+    ArtifactRepo(SessionLocal()).create(
+        Artifact(name="g_mr_ci_p_table_ins", params=params_str, params_hash=params_hash)
+    )
 
 
-def g_mr_ci_p_table_outs(_g_mr_ci_p_table_outs):
+def g_mr_ci_p_table_outs(_g_mr_ci_p_table_outs, params_str, params_hash):
     df = DataFrame(
         [
             {
@@ -66,4 +82,10 @@ def g_mr_ci_p_table_outs(_g_mr_ci_p_table_outs):
             for r in _g_mr_ci_p_table_outs
         ]
     )
-    df.to_csv("artifacts/eda/day_type/g_mr_ci_p_table_outs.csv")
+    df.to_csv(f"artifacts/eda/day_type/{params_hash[:7]}_g_mr_ci_p_table_outs.csv")
+
+    ArtifactRepo(SessionLocal()).create(
+        Artifact(
+            name="g_mr_ci_p_table_outs", params=params_str, params_hash=params_hash
+        )
+    )

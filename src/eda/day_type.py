@@ -7,6 +7,7 @@ from scipy.spatial.distance import cdist, pdist, squareform
 from src.data.load import load_counts
 from src.eda.utils import artifacts
 from src.utils.day_types import DAY_TYPES
+from src.utils.hash import hash_params
 from src.utils.seeds import SEED_BOOTSTRAP_SG_TIME_SERIES
 
 BOOTSTRAP_ITER = 5000  # this will be considered a config value
@@ -125,6 +126,16 @@ def analysis():
     STATION_IDS = [1]
     # SEED_BOOTSTRAP_SG_TIME_SERIES is another param
 
+    params_dict = {
+        "time_min": TIME_MIN,
+        "time_max": TIME_MAX,
+        "window_minutes": WINDOW_MINUTES,
+        "station_ids": STATION_IDS,
+        "seed": SEED_BOOTSTRAP_SG_TIME_SERIES,
+    }
+
+    params_str, params_hash = hash_params(params_dict)
+
     # station_ids=,
     counts_df = load_counts(
         time_min=TIME_MIN,
@@ -176,8 +187,8 @@ def analysis():
             )
 
     # persistance
-    artifacts.sg_r_ci_table_ins(_sg_r_ci_table_ins)
-    artifacts.sg_r_ci_table_outs(_sg_r_ci_table_outs)
+    artifacts.sg_r_ci_table_ins(_sg_r_ci_table_ins, params_str, params_hash)
+    artifacts.sg_r_ci_table_outs(_sg_r_ci_table_outs, params_str, params_hash)
 
     _g_mr_ci_p_table_ins = []
     _g_mr_ci_p_table_outs = []
@@ -203,8 +214,8 @@ def analysis():
         _g_mr_ci_p_table_outs.append((day_type, median_R, q25, q75, p))
 
     # persistance
-    artifacts.g_mr_ci_p_table_ins(_g_mr_ci_p_table_ins)
-    artifacts.g_mr_ci_p_table_outs(_g_mr_ci_p_table_outs)
+    artifacts.g_mr_ci_p_table_ins(_g_mr_ci_p_table_ins, params_str, params_hash)
+    artifacts.g_mr_ci_p_table_outs(_g_mr_ci_p_table_outs, params_str, params_hash)
 
 
 if __name__ == "__main__":
