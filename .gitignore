@@ -1,6 +1,4 @@
 *.csv
-
-/data/*
 *.db
 
 # Python-generated files
