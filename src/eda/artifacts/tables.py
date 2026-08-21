@@ -1,8 +1,6 @@
 from pandas import DataFrame
 
-from src.db.models import Artifact
-from src.db.repo import ArtifactRepo
-from src.db.session import SessionLocal
+from src.eda.artifacts.utils import record_artifact
 
 
 def sg_r_ci_table_ins(_sg_r_ci_table_ins, params_str, params_hash):
@@ -21,10 +19,7 @@ def sg_r_ci_table_ins(_sg_r_ci_table_ins, params_str, params_hash):
         ]
     )
     df.to_csv(f"artifacts/eda/day_type/{params_hash[:7]}_sg_r_ci_table_ins.csv")
-
-    ArtifactRepo(SessionLocal()).create(
-        Artifact(name="sg_r_ci_table_ins", params=params_str, params_hash=params_hash)
-    )
+    record_artifact("sg_r_ci_table_ins", params_str, params_hash)
 
 
 def sg_r_ci_table_outs(_sg_r_ci_table_outs, params_str, params_hash):
@@ -43,10 +38,7 @@ def sg_r_ci_table_outs(_sg_r_ci_table_outs, params_str, params_hash):
         ]
     )
     df.to_csv(f"artifacts/eda/day_type/{params_hash[:7]}_sg_r_ci_table_outs.csv")
-
-    ArtifactRepo(SessionLocal()).create(
-        Artifact(name="sg_r_ci_table_outs", params=params_str, params_hash=params_hash)
-    )
+    record_artifact("sg_r_ci_table_outs", params_str, params_hash)
 
 
 def g_mr_ci_p_table_ins(_g_mr_ci_p_table_ins, params_str, params_hash):
@@ -63,10 +55,7 @@ def g_mr_ci_p_table_ins(_g_mr_ci_p_table_ins, params_str, params_hash):
         ]
     )
     df.to_csv(f"artifacts/eda/day_type/{params_hash[:7]}_g_mr_ci_p_table_ins.csv")
-
-    ArtifactRepo(SessionLocal()).create(
-        Artifact(name="g_mr_ci_p_table_ins", params=params_str, params_hash=params_hash)
-    )
+    record_artifact("g_mr_ci_p_table_ins", params_str, params_hash)
 
 
 def g_mr_ci_p_table_outs(_g_mr_ci_p_table_outs, params_str, params_hash):
@@ -83,9 +72,4 @@ def g_mr_ci_p_table_outs(_g_mr_ci_p_table_outs, params_str, params_hash):
         ]
     )
     df.to_csv(f"artifacts/eda/day_type/{params_hash[:7]}_g_mr_ci_p_table_outs.csv")
-
-    ArtifactRepo(SessionLocal()).create(
-        Artifact(
-            name="g_mr_ci_p_table_outs", params=params_str, params_hash=params_hash
-        )
-    )
+    record_artifact("g_mr_ci_p_table_outs", params_str, params_hash)

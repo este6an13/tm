@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 from numpy import median, percentile
 from pandas import Index
 
-from src.eda.utils.utils import station_time_series
+from src.eda.artifacts.utils import record_artifact
+from src.eda.utils import station_time_series
 from src.utils.day_types import DAY_TYPES
 from src.utils.plotting import DATE_TYPE_COLORS
 
@@ -27,7 +28,7 @@ def get_time_cols(columns: Index):
     return time_cols
 
 
-def _plot(time_cols, ins_curves, outs_curves):
+def _plot(time_cols, ins_curves, outs_curves, station_id, station_code, station_name):
     fig, (ax_in, ax_out) = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
 
     X = list(map(time_int_to_min, time_cols))
@@ -61,48 +62,69 @@ def _plot(time_cols, ins_curves, outs_curves):
     ax_out.set_xlabel("time of day")
     ax_out.tick_params(rotation=45, rotation_mode="xtick")
 
+    fig.suptitle(
+        f"Daily demand profiles by day type: {station_id}:{station_code} - {station_name}",
+        fontsize=14,
+        fontweight="bold",
+    )
+    ax_in.set_title("Check-ins", fontsize=11, loc="left")
+    ax_out.set_title("Check-outs", fontsize=11, loc="left")
+
+    fig.text(
+        0.5,
+        0.945,
+        "median and interquartile range across days",
+        ha="center",
+        fontsize=10,
+        color="0.4",
+    )
+
     ax_in.legend(frameon=False)
     fig.tight_layout()
-    fig.show()
 
     return fig
 
 
 # 1 plot per station (2 panels: ins/outs), 3 curves (1 per day type)
-def plot(counts_df, params_str, params_hash):
+def sg_profile_plot(station_df, params_str, params_hash):
+    station_id = station_df.iloc[0]["station_id"]
+    station_code = station_df.iloc[0]["station_code"]
+    station_name = station_df.iloc[0]["station_name"]
+
     # time_cols will define the horizontal axis
-    time_cols = get_time_cols(counts_df.columns)  # universal for all stations
+    time_cols = get_time_cols(station_df.columns)
 
-    station_groups = counts_df.groupby("station_id")
-    for station_id, station_df in station_groups:
-        # extract time series per station
-        ti_series_df, to_series_df = station_time_series(station_df)
+    # extract time series per station
+    ti_series_df, to_series_df = station_time_series(station_df)
 
-        # compute data to plot: envelopes
-        # check-ins
-        ti_curves = {}
-        ti_g_groups = ti_series_df.groupby("day_type")
-        for day_type, ti_g_group in ti_g_groups:
-            ti_g_group_matrix = ti_g_group.drop(columns=["day_type"]).values
-            med = median(ti_g_group_matrix, axis=0)
-            q25, q75 = percentile(ti_g_group_matrix, [25, 75], axis=0)
-            n = ti_g_group_matrix.shape[0]
-            ti_curves[day_type] = (med, q25, q75, n)
+    # compute data to plot: envelopes
+    # check-ins
+    ti_curves = {}
+    ti_g_groups = ti_series_df.groupby("day_type")
+    for day_type, ti_g_group in ti_g_groups:
+        ti_g_group_matrix = ti_g_group.drop(columns=["day_type"]).values
+        med = median(ti_g_group_matrix, axis=0)
+        q25, q75 = percentile(ti_g_group_matrix, [25, 75], axis=0)
+        n = ti_g_group_matrix.shape[0]
+        ti_curves[day_type] = (med, q25, q75, n)
 
-        # check-outs
-        to_curves = {}
-        to_g_groups = to_series_df.groupby("day_type")
-        for day_type, to_g_group in to_g_groups:
-            to_g_group_matrix = to_g_group.drop(columns=["day_type"]).values
-            med = median(to_g_group_matrix, axis=0)
-            q25, q75 = percentile(to_g_group_matrix, [25, 75], axis=0)
-            n = to_g_group_matrix.shape[0]
-            to_curves[day_type] = (med, q25, q75, n)
+    # check-outs
+    to_curves = {}
+    to_g_groups = to_series_df.groupby("day_type")
+    for day_type, to_g_group in to_g_groups:
+        to_g_group_matrix = to_g_group.drop(columns=["day_type"]).values
+        med = median(to_g_group_matrix, axis=0)
+        q25, q75 = percentile(to_g_group_matrix, [25, 75], axis=0)
+        n = to_g_group_matrix.shape[0]
+        to_curves[day_type] = (med, q25, q75, n)
 
-        # actual plotting step per station
-        fig = _plot(time_cols, ti_curves, to_curves)
-        fig.savefig(
-            f"artifacts/eda/day_type/{params_hash[:7]}_{station_id}_sg_profile_plot.jpg",
-            dpi=200,
-            bbox_inches="tight",
-        )
+    # generate plot
+    fig = _plot(time_cols, ti_curves, to_curves, station_id, station_code, station_name)
+
+    # persist artifact
+    fig.savefig(
+        f"artifacts/eda/day_type/{params_hash[:7]}_{station_id}_sg_profile_plot.jpg",
+        dpi=200,
+        bbox_inches="tight",
+    )
+    record_artifact(f"{station_id}_sg_profile_plot", params_str, params_hash)

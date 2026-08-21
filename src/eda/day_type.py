@@ -5,9 +5,8 @@ from numpy.random import default_rng
 from scipy.spatial.distance import cdist, pdist, squareform
 
 from src.data.load import load_counts
-from src.eda.plots.day_type import plot
-from src.eda.utils import artifacts
-from src.eda.utils.utils import station_time_series
+from src.eda.artifacts import plots, tables
+from src.eda.utils import station_time_series
 from src.utils.day_types import DAY_TYPES
 from src.utils.hash import hash_params
 from src.utils.seeds import SEED_BOOTSTRAP_SG_TIME_SERIES
@@ -115,7 +114,7 @@ def analysis():
     TIME_MAX = 2300
     WINDOW_MINUTES = 15
     # STATION_IDS = [1, 2, 6, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25, 29]
-    STATION_IDS = [2]
+    STATION_IDS = [1]
     # SEED_BOOTSTRAP_SG_TIME_SERIES is another param
 
     params_dict = {
@@ -136,9 +135,9 @@ def analysis():
         window_minutes=WINDOW_MINUTES,
     )
 
-    # plot(counts_df, params_str, params_hash)
-
     station_groups = counts_df.groupby("station_id")
+
+    plots.sg_profile_plot(station_groups.get_group(1), params_str, params_hash)
 
     INS_G_RESULTS = {}
     OUTS_G_RESULTS = {}
@@ -182,8 +181,8 @@ def analysis():
             )
 
     # persistance
-    artifacts.sg_r_ci_table_ins(_sg_r_ci_table_ins, params_str, params_hash)
-    artifacts.sg_r_ci_table_outs(_sg_r_ci_table_outs, params_str, params_hash)
+    tables.sg_r_ci_table_ins(_sg_r_ci_table_ins, params_str, params_hash)
+    tables.sg_r_ci_table_outs(_sg_r_ci_table_outs, params_str, params_hash)
 
     _g_mr_ci_p_table_ins = []
     _g_mr_ci_p_table_outs = []
@@ -209,8 +208,8 @@ def analysis():
         _g_mr_ci_p_table_outs.append((day_type, median_R, q25, q75, p))
 
     # persistance
-    artifacts.g_mr_ci_p_table_ins(_g_mr_ci_p_table_ins, params_str, params_hash)
-    artifacts.g_mr_ci_p_table_outs(_g_mr_ci_p_table_outs, params_str, params_hash)
+    tables.g_mr_ci_p_table_ins(_g_mr_ci_p_table_ins, params_str, params_hash)
+    tables.g_mr_ci_p_table_outs(_g_mr_ci_p_table_outs, params_str, params_hash)
 
 
 if __name__ == "__main__":
