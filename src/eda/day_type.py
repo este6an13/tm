@@ -5,7 +5,9 @@ from numpy.random import default_rng
 from scipy.spatial.distance import cdist, pdist, squareform
 
 from src.data.load import load_counts
+from src.eda.plots.day_type import plot
 from src.eda.utils import artifacts
+from src.eda.utils.utils import station_time_series
 from src.utils.day_types import DAY_TYPES
 from src.utils.hash import hash_params
 from src.utils.seeds import SEED_BOOTSTRAP_SG_TIME_SERIES
@@ -16,16 +18,6 @@ BOOTSTRAP_ITER = 5000  # this will be considered a config value
 rng = default_rng(SEED_BOOTSTRAP_SG_TIME_SERIES)
 
 DAY_TYPE_PAIRS = list(combinations(DAY_TYPES, 2))
-
-
-def station_time_series(station_df):
-    ti_cols = sorted([col for col in station_df.columns if col.startswith("ti_")])
-    to_cols = sorted([col for col in station_df.columns if col.startswith("to_")])
-    ti_series = station_df[["day_type"] + ti_cols]
-    to_series = station_df[["day_type"] + to_cols]
-    ti_series = ti_series.fillna(0)
-    to_series = to_series.fillna(0)
-    return ti_series, to_series
 
 
 # sample N rows with replacement
@@ -123,7 +115,7 @@ def analysis():
     TIME_MAX = 2300
     WINDOW_MINUTES = 15
     # STATION_IDS = [1, 2, 6, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25, 29]
-    STATION_IDS = [1]
+    STATION_IDS = [2]
     # SEED_BOOTSTRAP_SG_TIME_SERIES is another param
 
     params_dict = {
@@ -143,6 +135,9 @@ def analysis():
         station_ids=STATION_IDS,
         window_minutes=WINDOW_MINUTES,
     )
+
+    # plot(counts_df, params_str, params_hash)
+
     station_groups = counts_df.groupby("station_id")
 
     INS_G_RESULTS = {}

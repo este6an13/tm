@@ -4,6 +4,7 @@ from src.db.repo import CountsRepo
 from src.db.session import SessionLocal
 
 
+# this construction ensures colums will be sorted (asc)
 def time_columns(time_min: int = 400, time_max: int = 2300, window_minutes: int = 15):
     col_time = time_min
     cols = []

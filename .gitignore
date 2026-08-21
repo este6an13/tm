@@ -1,4 +1,5 @@
 *.csv
+*.jpg
 *.db
 
 # Python-generated files
