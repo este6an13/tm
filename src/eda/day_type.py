@@ -108,13 +108,30 @@ def analyze_station(station_df, bootstrap=False):
 
 
 def analysis():
+    """
+    1: Portal El Dorado
+    6: Virrey
+    8: Mazurén
+    9: San Mateo
+    10: Portal Sur
+    11: Santa Isabel
+    14: Escuela Militar
+    18: Museo Nacional
+    20: El Tiempo
+    21: Portal El Tunal
+    22: General Santander
+    25: Calle 57
+    29: Suba Calle 100
+    """
 
     # analysis params
     TIME_MIN = 400
     TIME_MAX = 2300
     WINDOW_MINUTES = 15
-    # STATION_IDS = [1, 2, 6, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25, 29]
-    STATION_IDS = [1]
+    STATION_IDS = [1, 6, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25, 29]
+    PLOT_STATION_IDS = [1, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25]
+    # STATION_IDS = [1]
+    # PLOT_STATION_IDS = [1]
     # SEED_BOOTSTRAP_SG_TIME_SERIES is another param
 
     params_dict = {
@@ -137,7 +154,10 @@ def analysis():
 
     station_groups = counts_df.groupby("station_id")
 
-    plots.sg_profile_plot(station_groups.get_group(1), params_str, params_hash)
+    for station_id in PLOT_STATION_IDS:
+        plots.sg_profile_plot(
+            station_groups.get_group(station_id), params_str, params_hash
+        )
 
     INS_G_RESULTS = {}
     OUTS_G_RESULTS = {}
