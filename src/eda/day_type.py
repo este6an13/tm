@@ -1,8 +1,8 @@
 from itertools import combinations
 
-from numpy import concatenate, median, percentile, quantile, triu
+from numpy import concatenate, median, percentile, quantile
 from numpy.random import default_rng
-from scipy.spatial.distance import cdist, pdist, squareform
+from scipy.spatial.distance import cdist, pdist
 
 from src.data.load import load_counts
 from src.eda.artifacts import plots, tables
@@ -40,9 +40,8 @@ def station_day_type_matrices(t_series_df, bootstrap=False):
 def within_groups_analysis(sg_matrices):
     means = {}
     for g in DAY_TYPES:
-        dist_matrix = squareform(pdist(sg_matrices[g], metric="euclidean"))
-        U = triu(dist_matrix)  # upper triangle
-        mean = U[U != 0].mean()  # exclude diagonal
+        dist_array = pdist(sg_matrices[g], metric="euclidean")
+        mean = dist_array.mean()  # already excludes diagonal
         means[g] = mean
     return means
 
