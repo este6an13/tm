@@ -2,10 +2,11 @@ import matplotlib.pyplot as plt
 from numpy import median, percentile
 from pandas import Index
 
+from src.eda.artifacts.load import load_sg_r_ci_tables
 from src.eda.artifacts.utils import record_artifact
 from src.eda.utils import station_time_series
 from src.utils.day_types import DAY_TYPES
-from src.utils.plotting import DATE_TYPE_COLORS
+from src.utils.plotting import DAY_TYPES_COLORS
 
 
 # transform to absolute minutes to plot scaled correctly
@@ -28,7 +29,9 @@ def get_time_cols(columns: Index):
     return time_cols
 
 
-def _plot(time_cols, ins_curves, outs_curves, station_id, station_code, station_name):
+def _make_sg_profile_plot(
+    time_cols, ins_curves, outs_curves, station_id, station_code, station_name
+):
     fig, (ax_in, ax_out) = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
 
     X = list(map(time_int_to_min, time_cols))
@@ -39,7 +42,7 @@ def _plot(time_cols, ins_curves, outs_curves, station_id, station_code, station_
     ):
         for day_type in DAY_TYPES:
             med, q25, q75, n = curves[day_type]
-            color = DATE_TYPE_COLORS[day_type]
+            color = DAY_TYPES_COLORS[day_type]
             label = f"{day_type} (n={n})"
             ax.fill_between(
                 X,
@@ -119,7 +122,9 @@ def sg_profile_plot(station_df, params_str, params_hash):
         to_curves[day_type] = (med, q25, q75, n)
 
     # generate plot
-    fig = _plot(time_cols, ti_curves, to_curves, station_id, station_code, station_name)
+    fig = _make_sg_profile_plot(
+        time_cols, ti_curves, to_curves, station_id, station_code, station_name
+    )
 
     # persist artifact
     fig.savefig(
@@ -128,3 +133,87 @@ def sg_profile_plot(station_df, params_str, params_hash):
         bbox_inches="tight",
     )
     record_artifact(f"{station_id}_sg_profile_plot", params_str, params_hash)
+
+
+def _make_sg_r_ci_plot(df, order, pos):
+    fig, axes = plt.subplots(
+        2,
+        len(DAY_TYPES),
+        figsize=(12, 2 + 0.28 * len(order)),
+        sharex=True,
+        sharey=True,
+        layout="constrained",
+    )
+
+    # first check-ins, then check-outs
+    for row, direction in enumerate(("ins", "outs")):
+        # per day type
+        for col, day_type in enumerate(DAY_TYPES):
+            ax = axes[row, col]
+            # one panel per (direction, day_type) combination
+            panel = df[(df.day_type == day_type) & (df.direction == direction)]
+
+            ax.axvline(1.0, ls="--", lw=1, color="red", alpha=0.5, zorder=0)
+
+            # a record is a (station, day type) combination
+            for r in panel.itertuples():
+                # we extract the values/statistics
+                y = pos[r.station_name]
+                supported = r.q_025 > 1
+                color = DAY_TYPES_COLORS[day_type] if supported else "0.35"
+                ax.hlines(y, r.q_025, r.q_975, color=color, lw=2)
+                ax.plot(r.R_obs, y, "o", ms=5, color=color)
+
+            # presentation
+            p = (panel.q_025 > 1).mean()
+            ax.text(
+                0.97,
+                0.02,
+                f"p = {p:.2f}",
+                transform=ax.transAxes,
+                ha="right",
+                va="bottom",
+                fontsize=9,
+                color="0.4",
+            )
+
+            if row == 0:
+                ax.set_title(day_type)
+            ax.spines[["top", "right"]].set_visible(False)
+
+    # more presentation
+    axes[0, 0].set_yticks(range(len(order)))
+    axes[0, 0].set_yticklabels(order, fontsize=8)
+    axes[1, 0].set_yticklabels(order, fontsize=8)
+    axes[0, 0].invert_yaxis()
+
+    for col in range(len(DAY_TYPES)):
+        axes[1, col].set_xlabel("R = between / within")
+
+    axes[0, 0].set_ylabel("check-ins")
+    axes[1, 0].set_ylabel("check-outs")
+
+    fig.suptitle("Day-type separation by station", fontsize=14, fontweight="bold")
+
+    return fig
+
+
+def sg_r_ci_plot(params_str, params_hash):
+    df = load_sg_r_ci_tables(params_hash)
+
+    # prepare prerrequisites for plot: order of stations and pos indexes
+    ref = df[(df.day_type == "WD") & (df.direction == "ins")]
+    # we just want to show one CI per station in desc order, in each panel
+    order = ref.sort_values("R_obs", ascending=False)["station_name"].tolist()
+    pos = {name: i for i, name in enumerate(order)}
+
+    # make plot
+    fig = _make_sg_r_ci_plot(df, order, pos)
+
+    # artifact persistence
+    fig.savefig(
+        f"artifacts/eda/day_type/{params_hash[:7]}_sg_r_ci_plot.jpg",
+        dpi=200,
+        bbox_inches="tight",
+    )
+    record_artifact("sg_r_ci_plot", params_str, params_hash)

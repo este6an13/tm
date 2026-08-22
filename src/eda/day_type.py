@@ -204,6 +204,8 @@ def analysis():
     tables.sg_r_ci_table_ins(_sg_r_ci_table_ins, params_str, params_hash)
     tables.sg_r_ci_table_outs(_sg_r_ci_table_outs, params_str, params_hash)
 
+    plots.sg_r_ci_plot(params_str, params_hash)
+
     _g_mr_ci_p_table_ins = []
     _g_mr_ci_p_table_outs = []
 
