@@ -154,11 +154,6 @@ def analysis():
 
     station_groups = counts_df.groupby("station_id")
 
-    for station_id in PLOT_STATION_IDS:
-        plots.sg_profile_plot(
-            station_groups.get_group(station_id), params_str, params_hash
-        )
-
     INS_G_RESULTS = {}
     OUTS_G_RESULTS = {}
 
@@ -200,12 +195,6 @@ def analysis():
                 (station_id, station_code, station_name, day_type, R_obs, q_025, q_975)
             )
 
-    # persistance
-    tables.sg_r_ci_table_ins(_sg_r_ci_table_ins, params_str, params_hash)
-    tables.sg_r_ci_table_outs(_sg_r_ci_table_outs, params_str, params_hash)
-
-    plots.sg_r_ci_plot(params_str, params_hash)
-
     _g_mr_ci_p_table_ins = []
     _g_mr_ci_p_table_outs = []
 
@@ -229,7 +218,17 @@ def analysis():
 
         _g_mr_ci_p_table_outs.append((day_type, median_R, q25, q75, p))
 
-    # persistance
+    # artifacts generation
+    for station_id in PLOT_STATION_IDS:
+        plots.sg_profile_plot(
+            station_groups.get_group(station_id), params_str, params_hash
+        )
+
+    tables.sg_r_ci_table_ins(_sg_r_ci_table_ins, params_str, params_hash)
+    tables.sg_r_ci_table_outs(_sg_r_ci_table_outs, params_str, params_hash)
+
+    plots.sg_r_ci_plot(params_str, params_hash)
+
     tables.g_mr_ci_p_table_ins(_g_mr_ci_p_table_ins, params_str, params_hash)
     tables.g_mr_ci_p_table_outs(_g_mr_ci_p_table_outs, params_str, params_hash)
 
