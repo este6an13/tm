@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
-from numpy import median, percentile
+from numpy import clip, inf, median, percentile
+from numpy.random import default_rng
 from pandas import Index
 
 from src.eda.artifacts.load import load_sg_r_ci_tables
@@ -217,3 +218,74 @@ def sg_r_ci_plot(params_str, params_hash):
         bbox_inches="tight",
     )
     record_artifact("sg_r_ci_plot", params_str, params_hash)
+
+
+rng_plot = default_rng(42)
+
+
+def sg_dists_clouds_plot(
+    station_id,
+    station_code,
+    station_name,
+    params_str,
+    params_hash,
+    withins,
+    betweens,
+    direction,
+):
+    groups = []
+
+    for g in DAY_TYPES:
+        groups.append((f"within {g}", withins[g], DAY_TYPES_COLORS[g]))
+    for (g1, g2), arr in betweens.items():
+        groups.append((f"{g1} ↔ {g2}", arr, "0.45"))
+
+    pos = [0, 1, 2, 4, 5, 6]  # a gap at idx 3 to separate between from within sections
+
+    fig, ax = plt.subplots(figsize=(10, 6), layout="constrained")
+
+    for (_, arr, color), y in zip(groups, pos):
+        # cloud plotting
+        parts = ax.violinplot(
+            arr,
+            positions=[y],
+            vert=False,
+            widths=0.9,
+            showextrema=False,
+            showmedians=False,
+        )
+        for body in parts["bodies"]:
+            v = body.get_paths()[0].vertices
+            v[:, 1] = clip(v[:, 1], y, inf)
+            body.set_facecolor(color)
+            body.set_alpha(0.5)
+
+        # rain plottinh
+        jitter = rng_plot.uniform(-0.13, -0.03, size=len(arr))
+        ax.scatter(arr, y + jitter, s=3, color=color, alpha=0.25, linewidths=0)
+
+        # median + IQR interval
+        q25, med, q75 = percentile(arr, [25, 50, 75])
+        ax.hlines(y - 0.18, q25, q75, color="0.2", lw=2)
+        ax.plot(
+            med, y - 0.18, "o", ms=4, color="white", markeredgecolor="0.2", zorder=3
+        )
+
+    ax.set_yticks(pos)
+    ax.set_yticklabels([label for label, _, _ in groups])
+    ax.set_xlabel("pairwise Euclidean distance between days")
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+
+    fig.suptitle(
+        f"Within- vs between-day-type distances: {station_code} - {station_name} - {direction}",
+        fontsize=13,
+        fontweight="bold",
+    )
+    fig.savefig(
+        f"artifacts/eda/day_type/{params_hash[:7]}_{station_id}_{direction}_sg_dists_clouds_plot.jpg",
+        dpi=200,
+        bbox_inches="tight",
+    )
+
+    plt.close(fig)

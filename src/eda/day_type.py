@@ -38,34 +38,36 @@ def station_day_type_matrices(t_series_df, bootstrap=False):
 
 
 def within_groups_analysis(sg_matrices):
+    dist_arrays = {}
     means = {}
     for g in DAY_TYPES:
         dist_array = pdist(sg_matrices[g], metric="euclidean")
         mean = dist_array.mean()  # already excludes diagonal
         means[g] = mean
-    return means
+        dist_arrays[g] = dist_array
+    return means, dist_arrays
 
 
 def between_groups_analysis(sg_matrices):
-    dist_arrays = []
+    dist_arrays = {}
     for g1, g2 in DAY_TYPE_PAIRS:
         pair_dist_matrix = cdist(sg_matrices[g1], sg_matrices[g2], metric="euclidean")
         pair_dist_array = pair_dist_matrix.ravel()  # 1D to concatenate
-        dist_arrays.append(pair_dist_array)
+        dist_arrays[(g1, g2)] = pair_dist_array
 
-    dist_matrix = concatenate(dist_arrays)
-    return dist_matrix.mean()
+    dist_matrix = concatenate(list(dist_arrays.values()))
+    return dist_matrix.mean(), dist_arrays
 
 
 def _analyze_time_series(t_series_df, bootstrap=False):
     sg_matrices = station_day_type_matrices(t_series_df, bootstrap)
-    w_means = within_groups_analysis(sg_matrices)
-    b_mean = between_groups_analysis(sg_matrices)
+    w_means, w_dists = within_groups_analysis(sg_matrices)
+    b_mean, b_dists = between_groups_analysis(sg_matrices)
     res = []
     for day_type, w_mean in w_means.items():
         R = b_mean / w_mean
         res.append((day_type, R))
-    return res
+    return res, w_dists, b_dists
 
 
 def repeat_time_series_analysis(t_series_df):
@@ -73,7 +75,7 @@ def repeat_time_series_analysis(t_series_df):
     intervals = {}
     for _ in range(BOOTSTRAP_ITER):
         # perform 1 bootstrap iteration
-        partial_result = _analyze_time_series(t_series_df, bootstrap=True)
+        partial_result, _, _ = _analyze_time_series(t_series_df, bootstrap=True)
         # aggregate results
         for day_type, R in partial_result:
             results.setdefault(day_type, []).append(R)
@@ -87,7 +89,7 @@ def repeat_time_series_analysis(t_series_df):
 
 
 def analyze_time_series(t_series_df, bootstrap=False):
-    obs = _analyze_time_series(t_series_df)
+    obs, w_dists, b_dists = _analyze_time_series(t_series_df)
     if bootstrap:
         intervals = repeat_time_series_analysis(t_series_df)
 
@@ -95,15 +97,18 @@ def analyze_time_series(t_series_df, bootstrap=False):
     results = {}
     for day_type, R in obs:
         results[day_type] = (R, intervals[day_type])
-    return results
+    return results, [w_dists, b_dists]
 
 
 def analyze_station(station_df, bootstrap=False):
     ti_series_df, to_series_df = station_time_series(station_df)
-    ins_results = analyze_time_series(ti_series_df, bootstrap)  # check-ins
-    outs_results = analyze_time_series(to_series_df, bootstrap)  # check-outs
+    # dists shapes are nested: [{g1: w1, ...} {p1: b1, ...}]
+    ins_results, ins_dists = analyze_time_series(ti_series_df, bootstrap)  # check-ins
+    outs_results, outs_dists = analyze_time_series(
+        to_series_df, bootstrap
+    )  # check-outs
 
-    return ins_results, outs_results
+    return ins_results, outs_results, ins_dists, outs_dists
 
 
 def analysis():
@@ -159,10 +164,21 @@ def analysis():
     _sg_r_ci_table_ins = []
     _sg_r_ci_table_outs = []
 
+    INS_S_DISTANCES = {}
+    OUTS_S_DISTANCES = {}
+
     for station_id, station_df in station_groups:
         station_code = station_df.iloc[0]["station_code"]
         station_name = station_df.iloc[0]["station_name"]
-        INS_SG_RESULTS, OUTS_SG_RESULTS = analyze_station(station_df, bootstrap=True)
+        (
+            INS_SG_RESULTS,
+            OUTS_SG_RESULTS,
+            ins_s_distances,
+            outs_s_distances,
+        ) = analyze_station(station_df, bootstrap=True)
+
+        INS_S_DISTANCES[station_id] = (station_code, station_name, ins_s_distances)
+        OUTS_S_DISTANCES[station_id] = (station_code, station_name, outs_s_distances)
 
         # results are of the form {'WD': (observed R, (lo, hi)), ...}
         # (lo, hi) is the confidence interval constructed with bootstrap
@@ -230,6 +246,31 @@ def analysis():
 
     tables.g_mr_ci_p_table_ins(_g_mr_ci_p_table_ins, params_str, params_hash)
     tables.g_mr_ci_p_table_outs(_g_mr_ci_p_table_outs, params_str, params_hash)
+
+    for station_id in PLOT_STATION_IDS:
+        data = INS_S_DISTANCES[station_id]
+        plots.sg_dists_clouds_plot(
+            station_id,
+            data[0],  # station code
+            data[1],  # station name
+            params_str,
+            params_hash,
+            data[2][0],  # within distancs: {g1, w1, g1, w2, ...}
+            data[2][1],  # between distances: {p1: b1, p2: b2, ...}
+            "ins",
+        )
+
+        data = OUTS_S_DISTANCES[station_id]
+        plots.sg_dists_clouds_plot(
+            station_id,
+            data[0],
+            data[1],
+            params_str,
+            params_hash,
+            data[2][0],
+            data[2][1],
+            "outs",
+        )
 
 
 if __name__ == "__main__":
