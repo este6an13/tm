@@ -49,3 +49,5 @@ If I eventually present these findings as a research project, I want to ensure t
 The algorithms are handpicked from the OSLTM repo, where most of them were generated with AI assitance. However, the scripts in this repository are my own implementations. They may be clumsy, buggy and suboptimal, but they reflect my own coding style and understanding.
 
 Every line represents code that I can explain, debug, and improve myself and that's the goal of this project.
+
+> Update (8/23/2026): Ok, I'm using AI (specifically Claude Opus 5 in Claude Desktop) to help me write the matplotlib plots scripts though. I just know it would take me so much time doing it myself manually, and they wouldn't look good. But I'm not letting any agent make edits. I copy and paste snippets and tailor them. And all the input data computation is done manually just like the rest of the codebase.

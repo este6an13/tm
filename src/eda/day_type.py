@@ -6,7 +6,7 @@ from scipy.spatial.distance import cdist, pdist
 
 from src.data.load import load_counts
 from src.eda.artifacts import plots, tables
-from src.eda.utils import station_time_series
+from src.eda.utils import get_station_details, station_time_series
 from src.utils.day_types import DAY_TYPES
 from src.utils.hash import hash_params
 from src.utils.seeds import SEED_BOOTSTRAP_SG_TIME_SERIES
@@ -100,13 +100,37 @@ def analyze_time_series(t_series_df, bootstrap=False):
     return results, [w_dists, b_dists]
 
 
-def analyze_station(station_df, bootstrap=False):
+def analyze_station(
+    station_df, params_str, params_hash, bootstrap=False, artifacts=False
+):
     ti_series_df, to_series_df = station_time_series(station_df)
     # dists shapes are nested: [{g1: w1, ...} {p1: b1, ...}]
     ins_results, ins_dists = analyze_time_series(ti_series_df, bootstrap)  # check-ins
     outs_results, outs_dists = analyze_time_series(
         to_series_df, bootstrap
     )  # check-outs
+
+    if artifacts:
+        station_id, station_code, station_name = get_station_details(station_df)
+        plots.sg_dist_matrix(
+            ti_series_df,
+            params_str,
+            params_hash,
+            station_id,
+            station_code,
+            station_name,
+            "ins",
+        )
+
+        plots.sg_dist_matrix(
+            to_series_df,
+            params_str,
+            params_hash,
+            station_id,
+            station_code,
+            station_name,
+            "outs",
+        )
 
     return ins_results, outs_results, ins_dists, outs_dists
 
@@ -132,10 +156,10 @@ def analysis():
     TIME_MIN = 400
     TIME_MAX = 2300
     WINDOW_MINUTES = 15
-    STATION_IDS = [1, 6, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25, 29]
-    PLOT_STATION_IDS = [1, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25]
-    # STATION_IDS = [1]
-    # PLOT_STATION_IDS = [1]
+    # STATION_IDS = [1, 6, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25, 29]
+    # PLOT_STATION_IDS = [1, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25]
+    STATION_IDS = [9]
+    PLOT_STATION_IDS = [9]
     # SEED_BOOTSTRAP_SG_TIME_SERIES is another param
 
     params_dict = {
@@ -168,14 +192,20 @@ def analysis():
     OUTS_S_DISTANCES = {}
 
     for station_id, station_df in station_groups:
-        station_code = station_df.iloc[0]["station_code"]
-        station_name = station_df.iloc[0]["station_name"]
+        _, station_code, station_name = get_station_details(station_df)
+
         (
             INS_SG_RESULTS,
             OUTS_SG_RESULTS,
             ins_s_distances,
             outs_s_distances,
-        ) = analyze_station(station_df, bootstrap=True)
+        ) = analyze_station(
+            station_df,
+            params_str=params_str,
+            params_hash=params_hash,
+            bootstrap=True,
+            artifacts=station_id in PLOT_STATION_IDS,
+        )
 
         INS_S_DISTANCES[station_id] = (station_code, station_name, ins_s_distances)
         OUTS_S_DISTANCES[station_id] = (station_code, station_name, outs_s_distances)

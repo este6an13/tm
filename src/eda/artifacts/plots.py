@@ -1,11 +1,16 @@
 import matplotlib.pyplot as plt
-from numpy import clip, inf, median, percentile
+from numpy import clip, concatenate, cumsum, inf, median, percentile
 from numpy.random import default_rng
 from pandas import Index
+from scipy.spatial.distance import pdist, squareform
 
 from src.eda.artifacts.load import load_sg_r_ci_tables
 from src.eda.artifacts.utils import record_artifact
-from src.eda.utils import station_time_series
+from src.eda.utils import (
+    TIME_SERIES_PREFIX_COLS,
+    get_station_details,
+    station_time_series,
+)
 from src.utils.day_types import DAY_TYPES
 from src.utils.plotting import DAY_TYPES_COLORS
 
@@ -23,11 +28,24 @@ def time_int_to_str(time_int: int) -> str:
 
 
 # in time int format: 400, 415, 430, ...
-def get_time_cols(columns: Index):
+def time_min_cols(columns: Index, direction="ins"):
+    prefix = {"ins": "ti_", "outs": "to_"}
     time_cols = sorted(
-        [int(c.replace("ti_", "")) for c in list(columns) if c.startswith("ti_")]
+        [
+            int(c.replace(prefix[direction], ""))
+            for c in list(columns)
+            if c.startswith(prefix[direction])
+        ]
     )
     return time_cols
+
+
+def get_time_cols(columns: Index, direction: str):
+    prefix = {"ins": "ti_", "outs": "to_"}
+    return [
+        prefix[direction] + str(c)
+        for c in sorted(time_min_cols(columns, direction), key=time_int_to_min)
+    ]
 
 
 def _make_sg_profile_plot(
@@ -91,12 +109,10 @@ def _make_sg_profile_plot(
 
 # 1 plot per station (2 panels: ins/outs), 3 curves (1 per day type)
 def sg_profile_plot(station_df, params_str, params_hash):
-    station_id = station_df.iloc[0]["station_id"]
-    station_code = station_df.iloc[0]["station_code"]
-    station_name = station_df.iloc[0]["station_name"]
+    station_id, station_code, station_name = get_station_details(station_df)
 
     # time_cols will define the horizontal axis
-    time_cols = get_time_cols(station_df.columns)
+    time_cols = time_min_cols(station_df.columns)
 
     # extract time series per station
     ti_series_df, to_series_df = station_time_series(station_df)
@@ -106,7 +122,7 @@ def sg_profile_plot(station_df, params_str, params_hash):
     ti_curves = {}
     ti_g_groups = ti_series_df.groupby("day_type")
     for day_type, ti_g_group in ti_g_groups:
-        ti_g_group_matrix = ti_g_group.drop(columns=["day_type"]).values
+        ti_g_group_matrix = ti_g_group.drop(columns=TIME_SERIES_PREFIX_COLS).values
         med = median(ti_g_group_matrix, axis=0)
         q25, q75 = percentile(ti_g_group_matrix, [25, 75], axis=0)
         n = ti_g_group_matrix.shape[0]
@@ -116,7 +132,7 @@ def sg_profile_plot(station_df, params_str, params_hash):
     to_curves = {}
     to_g_groups = to_series_df.groupby("day_type")
     for day_type, to_g_group in to_g_groups:
-        to_g_group_matrix = to_g_group.drop(columns=["day_type"]).values
+        to_g_group_matrix = to_g_group.drop(columns=TIME_SERIES_PREFIX_COLS).values
         med = median(to_g_group_matrix, axis=0)
         q25, q75 = percentile(to_g_group_matrix, [25, 75], axis=0)
         n = to_g_group_matrix.shape[0]
@@ -283,9 +299,93 @@ def sg_dists_clouds_plot(
         fontweight="bold",
     )
     fig.savefig(
-        f"artifacts/eda/day_type/{params_hash[:7]}_{station_id}_{direction}_sg_dists_clouds_plot.jpg",
+        f"artifacts/eda/day_type/{params_hash[:7]}_{station_id}_sg_dists_clouds_plot_{direction}.jpg",
         dpi=200,
         bbox_inches="tight",
     )
 
     plt.close(fig)
+
+    record_artifact(
+        f"{station_id}_sg_dists_clouds_plot_{direction}", params_str, params_hash
+    )
+
+
+def _make_sg_dist_matrix(D, bounds, station_id, station_code, station_name, direction):
+    fig, ax = plt.subplots(figsize=(8, 7), layout="constrained")
+    vmax = percentile(D, 90)  # sets the darkest color to P99
+    im = ax.imshow(D, cmap="magma_r", vmin=0, vmax=vmax, interpolation="nearest")
+
+    for b in bounds:
+        ax.axhline(b - 0.5, color="white", lw=1.5)
+        ax.axvline(b - 0.5, color="white", lw=1.5)
+
+    # day-type labels at each block's midpoint
+    # this is just presentation
+    edges = [0, *bounds, len(D)]
+    centers = [(edges[i] + edges[i + 1]) / 2 - 0.5 for i in range(len(edges) - 1)]
+    ax.set_xticks(centers)
+    ax.set_xticklabels(DAY_TYPES)
+    ax.set_yticks(centers)
+    ax.set_yticklabels(DAY_TYPES)
+    ax.tick_params(length=0)
+
+    cbar = fig.colorbar(im, ax=ax, shrink=0.8)
+    cbar.set_label(f"Euclidean distance (clipped at {vmax:.0f})")
+
+    fig.suptitle(
+        f"Day-to-day distance matrix: {station_id}:{station_code} - {station_name} - {direction}",
+        fontsize=13,
+        fontweight="bold",
+    )
+
+    return fig
+
+
+def sg_dist_matrix(
+    t_series_df,
+    params_str,
+    params_hash,
+    station_id,
+    station_code,
+    station_name,
+    direction,
+):
+    blocks, _, labels = [], [], []
+
+    cols = get_time_cols(t_series_df, direction)
+
+    for g in DAY_TYPES:
+        # we extract the day type subset and sort it by date asc
+        sub = t_series_df[t_series_df.day_type == g].sort_values(
+            ["year", "month", "day"]
+        )
+
+        # each subset matrix is a block
+        blocks.append(sub[cols].values)
+        # we store the dates as tuples (y, m, d)
+        # dates.extend(sub[["year", "month", "day"]].apply(tuple, axis=1))
+        # we ensure each record will have its day type label
+        labels.extend([g] * len(sub))
+
+    # blocks are stacked into one matrix
+    stacked = concatenate(blocks, axis=0)
+    # we calcaulte de distances matrix of the whole stack
+    D = squareform(pdist(stacked, metric="euclidean"))
+    # compute the idx of where each block starts
+    # it works both horizontally and vertically, since blocks are squared
+    bounds = cumsum([len(b) for b in blocks])[:-1]
+
+    fig = _make_sg_dist_matrix(
+        D, bounds, station_id, station_code, station_name, direction
+    )
+
+    fig.savefig(
+        f"artifacts/eda/day_type/{params_hash[:7]}_{station_id}_sg_dist_matrix_plot_{direction}.jpg",
+        dpi=200,
+        bbox_inches="tight",
+    )
+
+    record_artifact(
+        f"{station_id}_sg_dist_matrix_plot_{direction}", params_str, params_hash
+    )
