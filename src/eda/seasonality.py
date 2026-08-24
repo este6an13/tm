@@ -12,8 +12,8 @@ BOOTSTRAP_ITER = 5000
 
 rng = default_rng(SEED_BOOTSTRAP_SG_TIME_SERIES)
 
-MONTHS = range(1, 13)
-MONTHS_PAIRS = list(combinations(MONTHS, 2))
+QUARTERS = range(1, 5)
+QUARTERS_PAIRS = list(combinations(QUARTERS, 2))
 
 
 # sample N rows with replacement
@@ -23,44 +23,46 @@ def sample_with_replacement(arr):
     return arr[idx]
 
 
-def station_month_matrices(day_type_df, bootstrap=False):
-    sm_matrices = {}
-    for month, month_df in day_type_df.groupby("month"):
-        matrix = month_df.drop(columns=TIME_SERIES_PREFIX_COLS).values
-        sm_matrices[month] = sample_with_replacement(matrix) if bootstrap else matrix
-    return sm_matrices
+def station_quarters_matrices(day_type_df, bootstrap=False):
+    sq_matrices = {}
+    # compute quarter column from month (m - 1) // 3 + 1
+    day_type_df = day_type_df.assign(quarter=(day_type_df["month"] - 1) // 3 + 1)
+    for quarter, quarter_df in day_type_df.groupby("quarter"):
+        matrix = quarter_df.drop(columns=TIME_SERIES_PREFIX_COLS).values
+        sq_matrices[quarter] = sample_with_replacement(matrix) if bootstrap else matrix
+    return sq_matrices
 
 
-def within_months_analysis(sm_matrices):
+def within_quarters_analysis(sq_matrices):
     dist_arrays = {}
     means = {}
-    for m in range(1, 13):
-        dist_array = pdist(sm_matrices[m], metric="euclidean")
+    for q in QUARTERS:
+        dist_array = pdist(sq_matrices[q], metric="euclidean")
         mean = dist_array.mean()  # already excludes diagonal
-        means[m] = mean
-        dist_arrays[m] = dist_array
+        means[q] = mean
+        dist_arrays[q] = dist_array
     return means, dist_arrays
 
 
-def between_months_analysis(sm_matrices):
+def between_quarters_analysis(sq_matrices):
     dist_arrays = {}
-    for g1, g2 in MONTHS_PAIRS:
-        pair_dist_matrix = cdist(sm_matrices[g1], sm_matrices[g2], metric="euclidean")
+    for q1, q2 in QUARTERS_PAIRS:
+        pair_dist_matrix = cdist(sq_matrices[q1], sq_matrices[q2], metric="euclidean")
         pair_dist_array = pair_dist_matrix.ravel()  # 1D to concatenate
-        dist_arrays[(g1, g2)] = pair_dist_array
+        dist_arrays[(q1, q2)] = pair_dist_array
 
     dist_matrix = concatenate(list(dist_arrays.values()))
     return dist_matrix.mean(), dist_arrays
 
 
 def _analyze_time_series(t_series_df, bootstrap=False):
-    sm_matrices = station_month_matrices(t_series_df, bootstrap)
-    w_means, w_dists = within_months_analysis(sm_matrices)
-    b_mean, b_dists = between_months_analysis(sm_matrices)
+    sq_matrices = station_quarters_matrices(t_series_df, bootstrap)
+    w_means, w_dists = within_quarters_analysis(sq_matrices)
+    b_mean, b_dists = between_quarters_analysis(sq_matrices)
     res = []
-    for month, w_mean in w_means.items():
+    for quarter, w_mean in w_means.items():
         R = b_mean / w_mean
-        res.append((month, R))
+        res.append((quarter, R))
     return res, w_dists, b_dists
 
 
@@ -71,13 +73,13 @@ def repeat_time_series_analysis(t_series_df):
         # perform 1 bootstrap iteration
         partial_result, _, _ = _analyze_time_series(t_series_df, bootstrap=True)
         # aggregate results
-        for month, R in partial_result:
-            results.setdefault(month, []).append(R)
+        for quarter, R in partial_result:
+            results.setdefault(quarter, []).append(R)
 
     # compute CI per day_type
-    for month, arr in results.items():
+    for quarter, arr in results.items():
         q025, q975 = quantile(arr, [0.025, 0.975])
-        intervals[month] = (q025, q975)
+        intervals[quarter] = (q025, q975)
 
     return intervals
 
@@ -90,14 +92,14 @@ def analyze_time_series(t_series_df, bootstrap=False):
 
         # organize results
         results = {}
-        for month, R in obs:
-            key = (day_type, month)
-            results[key] = (R, intervals[month])
+        for quarter, R in obs:
+            key = (day_type, quarter)
+            results[key] = (R, intervals[quarter])
             print(
                 day_type,
-                month,
+                quarter,
                 round(R, 5),
-                f"({round(intervals[month][0], 5)}, {round(intervals[month][1], 5)})",
+                f"({round(intervals[quarter][0], 5)}, {round(intervals[quarter][1], 5)})",
             )
         print()
     print()
@@ -105,7 +107,7 @@ def analyze_time_series(t_series_df, bootstrap=False):
 
 def analyze_station(station_df, bootstrap=False):
     ti_series_df, to_series_df = station_time_series(station_df)
-    # dists shapes are nested: [{m1: w1, ...} {p1: b1, ...}]
+    # dists shapes are nested: [{q1: w1, ...} {p1: b1, ...}]
     print("CHECK-INS")
     analyze_time_series(ti_series_df, bootstrap)  # check-ins
     print("CHECK-OUTS")
