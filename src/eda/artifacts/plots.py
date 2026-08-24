@@ -13,6 +13,9 @@ from src.eda.utils import (
 )
 from src.utils.day_types import DAY_TYPES
 from src.utils.plotting import DAY_TYPES_COLORS
+from src.utils.seeds import GENERIC_SEED
+
+rng_plot = default_rng(GENERIC_SEED)
 
 
 # transform to absolute minutes to plot scaled correctly
@@ -234,9 +237,6 @@ def sg_r_ci_plot(params_str, params_hash):
         bbox_inches="tight",
     )
     record_artifact("sg_r_ci_plot", params_str, params_hash)
-
-
-rng_plot = default_rng(42)
 
 
 def sg_dists_clouds_plot(

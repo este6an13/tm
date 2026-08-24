@@ -100,6 +100,65 @@ def analyze_time_series(t_series_df, bootstrap=False):
     return results, [w_dists, b_dists]
 
 
+def generate_station_artifacts(
+    station_df,
+    ti_series_df,
+    to_series_df,
+    ins_dists,
+    outs_dists,
+    params_str,
+    params_hash,
+):
+    station_id, station_code, station_name = get_station_details(station_df)
+
+    # station day type profiles (envelopes)
+    plots.sg_profile_plot(station_df, params_str, params_hash)
+
+    # rain cloud plots: to see overlap of within and pair-between distances
+    plots.sg_dists_clouds_plot(
+        station_id,
+        station_code,
+        station_name,
+        params_str,
+        params_hash,
+        ins_dists[0],  # within distancs: {g1, w1, g1, w2, ...}
+        ins_dists[1],  # between distances: {p1: b1, p2: b2, ...}
+        "ins",
+    )
+
+    plots.sg_dists_clouds_plot(
+        station_id,
+        station_code,
+        station_name,
+        params_str,
+        params_hash,
+        outs_dists[0],  # within distancs: {g1, w1, g1, w2, ...}
+        outs_dists[1],  # between distances: {p1: b1, p2: b2, ...}
+        "outs",
+    )
+
+    # distances matrix/heatmap: to detect anomalies in each block (day type)
+    plots.sg_dist_matrix(
+        ti_series_df,
+        params_str,
+        params_hash,
+        station_id,
+        station_code,
+        station_name,
+        "ins",
+    )
+
+    plots.sg_dist_matrix(
+        to_series_df,
+        params_str,
+        params_hash,
+        station_id,
+        station_code,
+        station_name,
+        "outs",
+    )
+
+
 def analyze_station(
     station_df, params_str, params_hash, bootstrap=False, artifacts=False
 ):
@@ -111,28 +170,17 @@ def analyze_station(
     )  # check-outs
 
     if artifacts:
-        station_id, station_code, station_name = get_station_details(station_df)
-        plots.sg_dist_matrix(
+        generate_station_artifacts(
+            station_df,
             ti_series_df,
-            params_str,
-            params_hash,
-            station_id,
-            station_code,
-            station_name,
-            "ins",
-        )
-
-        plots.sg_dist_matrix(
             to_series_df,
+            ins_dists,
+            outs_dists,
             params_str,
             params_hash,
-            station_id,
-            station_code,
-            station_name,
-            "outs",
         )
 
-    return ins_results, outs_results, ins_dists, outs_dists
+    return ins_results, outs_results
 
 
 def analysis():
@@ -188,27 +236,16 @@ def analysis():
     _sg_r_ci_table_ins = []
     _sg_r_ci_table_outs = []
 
-    INS_S_DISTANCES = {}
-    OUTS_S_DISTANCES = {}
-
     for station_id, station_df in station_groups:
-        _, station_code, station_name = get_station_details(station_df)
+        station_id, station_code, station_name = get_station_details(station_df)
 
-        (
-            INS_SG_RESULTS,
-            OUTS_SG_RESULTS,
-            ins_s_distances,
-            outs_s_distances,
-        ) = analyze_station(
+        (INS_SG_RESULTS, OUTS_SG_RESULTS) = analyze_station(
             station_df,
             params_str=params_str,
             params_hash=params_hash,
             bootstrap=True,
             artifacts=station_id in PLOT_STATION_IDS,
         )
-
-        INS_S_DISTANCES[station_id] = (station_code, station_name, ins_s_distances)
-        OUTS_S_DISTANCES[station_id] = (station_code, station_name, outs_s_distances)
 
         # results are of the form {'WD': (observed R, (lo, hi)), ...}
         # (lo, hi) is the confidence interval constructed with bootstrap
@@ -263,12 +300,7 @@ def analysis():
 
         _g_mr_ci_p_table_outs.append((day_type, median_R, q25, q75, p))
 
-    # artifacts generation
-    for station_id in PLOT_STATION_IDS:
-        plots.sg_profile_plot(
-            station_groups.get_group(station_id), params_str, params_hash
-        )
-
+    # global artifacts
     tables.sg_r_ci_table_ins(_sg_r_ci_table_ins, params_str, params_hash)
     tables.sg_r_ci_table_outs(_sg_r_ci_table_outs, params_str, params_hash)
 
@@ -276,31 +308,6 @@ def analysis():
 
     tables.g_mr_ci_p_table_ins(_g_mr_ci_p_table_ins, params_str, params_hash)
     tables.g_mr_ci_p_table_outs(_g_mr_ci_p_table_outs, params_str, params_hash)
-
-    for station_id in PLOT_STATION_IDS:
-        data = INS_S_DISTANCES[station_id]
-        plots.sg_dists_clouds_plot(
-            station_id,
-            data[0],  # station code
-            data[1],  # station name
-            params_str,
-            params_hash,
-            data[2][0],  # within distancs: {g1, w1, g1, w2, ...}
-            data[2][1],  # between distances: {p1: b1, p2: b2, ...}
-            "ins",
-        )
-
-        data = OUTS_S_DISTANCES[station_id]
-        plots.sg_dists_clouds_plot(
-            station_id,
-            data[0],
-            data[1],
-            params_str,
-            params_hash,
-            data[2][0],
-            data[2][1],
-            "outs",
-        )
 
 
 if __name__ == "__main__":
