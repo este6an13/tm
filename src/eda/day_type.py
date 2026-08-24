@@ -6,7 +6,11 @@ from scipy.spatial.distance import cdist, pdist
 
 from src.data.load import load_counts
 from src.eda.artifacts import plots, tables
-from src.eda.utils import get_station_details, station_time_series
+from src.eda.utils import (
+    TIME_SERIES_PREFIX_COLS,
+    get_station_details,
+    station_time_series,
+)
 from src.utils.day_types import DAY_TYPES
 from src.utils.hash import hash_params
 from src.utils.seeds import SEED_BOOTSTRAP_SG_TIME_SERIES
@@ -30,7 +34,7 @@ def station_day_type_matrices(t_series_df, bootstrap=False):
     sg_matrices = {}
     t_series_groups = t_series_df.groupby("day_type")
     for day_type, day_type_df in t_series_groups:
-        ti_series_matrix = day_type_df.drop(columns=["day_type"]).values
+        ti_series_matrix = day_type_df.drop(columns=TIME_SERIES_PREFIX_COLS).values
         sg_matrices[day_type] = (
             sample_with_replacement(ti_series_matrix) if bootstrap else ti_series_matrix
         )
