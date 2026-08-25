@@ -6,7 +6,6 @@ from src.data.populate import populate_counts
 from src.data.sampling.dates import sample_dates
 from src.data.sampling.stations import sample_stations
 from src.data.utils import cleanup
-from src.db.session import SessionLocal
 
 BASE_URL = "https://storage.googleapis.com/validaciones_tmsa/"
 CHECK_INS_URL = BASE_URL + "ValidacionTroncal/validacionTroncal{date_str}.zip"
@@ -52,10 +51,8 @@ def run():
     TIME_MAX = 2300
     WINDOW_MINUTES = 15
 
-    db = SessionLocal()
     set_up_workspace()
     dates, dsrun = sample_dates(
-        db,
         start_date=START_DATE,
         end_date=END_DATE,
         n=STRATUM_SIZE,  # 1 year, 3 samples per month is 36 dates per day type
@@ -69,7 +66,7 @@ def run():
     get_files(dates, *PARAMS["OUTS"])
     cleanup(folders=[TMP_UNZIP_PATH])
     files, stations, ssrun = sample_stations(
-        db, nfiles=N_FILES, nstations=N_STATIONS, paths=[CHECK_INS_PATH]
+        nfiles=N_FILES, nstations=N_STATIONS, paths=[CHECK_INS_PATH]
     )
     print(files)
     print(stations)

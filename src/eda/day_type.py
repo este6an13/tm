@@ -1,3 +1,4 @@
+from datetime import date
 from itertools import combinations
 
 from numpy import concatenate, median, percentile, quantile
@@ -5,6 +6,7 @@ from numpy.random import default_rng
 from scipy.spatial.distance import cdist, pdist
 
 from src.data.load import load_counts
+from src.data.sampling.dates import sample_dates
 from src.eda.artifacts import plots, tables
 from src.eda.utils import (
     TIME_SERIES_PREFIX_COLS,
@@ -13,7 +15,7 @@ from src.eda.utils import (
 )
 from src.utils.day_types import DAY_TYPES
 from src.utils.hash import hash_params
-from src.utils.seeds import SEED_BOOTSTRAP_SG_TIME_SERIES
+from src.utils.seeds import SEED_BOOTSTRAP_SG_TIME_SERIES, SEED_SAMPLING_DATES
 
 BOOTSTRAP_ITER = 5000  # this will be considered a config value
 
@@ -214,12 +216,28 @@ def analysis():
     PLOT_STATION_IDS = [9]
     # SEED_BOOTSTRAP_SG_TIME_SERIES is another param
 
+    START_DATE = date(2025, 1, 1)
+    END_DATE = date(2025, 12, 31)
+    STRATUM_SIZE = 3
+
+    DATES, _ = sample_dates(
+        start_date=START_DATE,
+        end_date=END_DATE,
+        n=STRATUM_SIZE,
+    )
+
     params_dict = {
         "time_min": TIME_MIN,
         "time_max": TIME_MAX,
         "window_minutes": WINDOW_MINUTES,
         "station_ids": STATION_IDS,
-        "seed": SEED_BOOTSTRAP_SG_TIME_SERIES,
+        "seed_bootstrap": SEED_BOOTSTRAP_SG_TIME_SERIES,
+        "seed_sampling_dates": SEED_SAMPLING_DATES,
+        "start_date": str(START_DATE),
+        "end_date": str(END_DATE),
+        "stratum_size": STRATUM_SIZE,
+        "dates": sorted([str(dt) for dt in DATES]),
+        "n_dates": len(DATES),
     }
 
     params_str, params_hash = hash_params(params_dict)
@@ -229,6 +247,7 @@ def analysis():
         time_min=TIME_MIN,
         time_max=TIME_MAX,
         station_ids=STATION_IDS,
+        dates=DATES,
         window_minutes=WINDOW_MINUTES,
     )
 

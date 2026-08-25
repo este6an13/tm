@@ -1,5 +1,7 @@
+from datetime import date
 from typing import Literal
 
+from sqlalchemy import tuple_
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.orm import Session
 
@@ -94,10 +96,23 @@ class CountsRepo(BaseRepo):
             self._bulk_upsert_batch(batch, col)
         self.db.commit()
 
-    def get_by(self, station_ids=None, time_min=400, time_max=2300, **filters):
+    def get_by(
+        self,
+        station_ids=None,
+        dates: list[date] | None = None,
+        time_min=400,
+        time_max=2300,
+        **filters,
+    ):
         query = self.db.query(self.model)
         if station_ids is not None:
             query = query.filter(self.model.station_id.in_(station_ids))
+        if dates is not None:
+            query = query.filter(
+                tuple_(self.model.year, self.model.month, self.model.day).in_(
+                    [(dt.year, dt.month, dt.day) for dt in dates]
+                )
+            )
 
         return (
             query.filter(

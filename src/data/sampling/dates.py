@@ -4,6 +4,7 @@ from random import sample, seed
 
 from src.db.models import DateSamplingRun
 from src.db.repo import DateSamplingRunRepo
+from src.db.session import SessionLocal
 from src.utils.day_types import get_day_type
 from src.utils.logging import info, success
 from src.utils.seeds import SEED_SAMPLING_DATES
@@ -51,7 +52,8 @@ def _sample_dates(start_date, end_date, n):
     return samples
 
 
-def sample_dates(db, start_date, end_date, n):
+def sample_dates(start_date, end_date, n):
+    db = SessionLocal()
     # sampling
     info(f"🎲 starting dates sampling between {start_date} and {end_date}")
     dates = _sample_dates(start_date, end_date, n)

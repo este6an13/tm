@@ -1,3 +1,5 @@
+from datetime import date
+
 from pandas import DataFrame
 
 from src.db.repo import CountsRepo
@@ -88,12 +90,19 @@ def t_counts_dataframe(counts_df, time_cols):
     return t_counts_df
 
 
-def load_counts(time_min: int = 400, time_max: int = 2300, station_ids=None, **filters):
+def load_counts(
+    time_min: int = 400,
+    time_max: int = 2300,
+    station_ids=None,
+    dates: list[date] | None = None,
+    **filters,
+):
     db = SessionLocal()
 
     counts_repo = CountsRepo(db)
     counts = counts_repo.get_by(
         station_ids=station_ids,
+        dates=dates,
         time_min=time_min,
         time_max=time_max,
         **filters,

@@ -40,6 +40,11 @@ Artifacts are just data and plots the scripts generate that could be reported. I
 - Stations Patterns: Are stations time series of the same day type different, are they similar in shape in magnitude, can we define groups?
 - Seasonality: check if one month behaves different to another. I won't check between years really.
 
+### Backlog:
+
+- Make data pipeline stations sampling independent of the dates sampling: I should use a method that doesn't have to look at the files to get the stations, maybe using the TM API.
+- Some stratified sampling may be useful later once we characterize the stations profiles a bit
+
 ### Note:
 
 I'm writing these scripts by hand, without autocompletion or agentic assistance, as a deliberate practice.

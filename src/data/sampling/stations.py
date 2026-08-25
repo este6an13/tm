@@ -6,6 +6,7 @@ from pandas import read_csv
 
 from src.db.models import StationSamplingRun
 from src.db.repo import StationSamplingRunRepo
+from src.db.session import SessionLocal
 from src.utils.logging import info, success
 from src.utils.seeds import SEED_SAMPLING_STATIONS
 
@@ -65,7 +66,8 @@ def hash_file_list(files: list[str]) -> str:
     return sha256(",".join(files).encode()).hexdigest()
 
 
-def sample_stations(db, nfiles, nstations, paths):
+def sample_stations(nfiles, nstations, paths):
+    db = SessionLocal()
     # sampling
     files, stations = _sample_stations(nfiles, nstations, paths)
     success(f"✅ sampled {len(stations)} stations from {nfiles} files!")
