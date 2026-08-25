@@ -33,4 +33,8 @@ def error(message):
 
 
 def warning(message):
-    echo(f"{Fore.YELLOW}{message}{Style.RESET_ALL}")
+    echo(f"{Fore.LIGHTYELLOW_EX}{message}{Style.RESET_ALL}")
+
+
+def info(message):
+    echo(f"{Fore.CYAN}{message}{Style.RESET_ALL}")

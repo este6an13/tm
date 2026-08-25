@@ -2,6 +2,8 @@ from datetime import date
 from os import remove
 from shutil import rmtree
 
+from src.utils.logging import success
+
 
 def cleanup(folders=None, files=None):
     if folders is not None:
@@ -10,6 +12,7 @@ def cleanup(folders=None, files=None):
     if files is not None:
         for file in files:
             remove(file)
+    success(f"🧹 cleaned up temporary folders and files: {folders + files}")
 
 
 def get_date_str(dt: date):

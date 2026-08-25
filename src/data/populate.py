@@ -13,7 +13,7 @@ from src.db.repo import (
 )
 from src.db.session import SessionLocal
 from src.utils.day_types import get_day_type
-from src.utils.logging import warning
+from src.utils.logging import success, warning
 
 
 def window_min_str(window_int):
@@ -156,7 +156,9 @@ def populate_counts(
         )
 
         if not repopulate and is_processed:
-            warning(f"file {date_str} for process {process_type} is already processed")
+            warning(
+                f"⏩ file {date_str} for process {process_type} already populated, skipping"
+            )
             continue
 
         df = read_csv(csv_filename(path, date_str))
@@ -185,4 +187,8 @@ def populate_counts(
         pfile_repo.mark_processed(
             filename=date_str,
             process_type=process_type,
+        )
+
+        success(
+            f"💾 file {date_str} for process {process_type} successfully populated!"
         )

@@ -8,7 +8,7 @@ from requests import get
 
 from src.data.files import file_exists
 from src.data.utils import csv_filename, get_date_str
-from src.utils.logging import warning
+from src.utils.logging import success, warning
 
 
 def zip_filename(fdir, fname):
@@ -31,6 +31,7 @@ def extract_dir(zip_fname):
 def move_file(src, dest):
     if src and src.exists():
         move(src, dest)
+        success(f"📁 file {src} moved to {dest}")
 
 
 def download_file(url: str, download_to: Path) -> bool:
@@ -92,6 +93,7 @@ def post_processing(csv_fname, columns_to_keep):
     df = rename_columns(df)  # rename columns for consistency with the codebase
     df = drop_columns(df, columns_to_keep)  # drop unused columns
     df.to_csv(csv_fname)
+    success(f"🌱 file {csv_fname} successfully post-processed!")
 
 
 def get_file(
@@ -105,12 +107,15 @@ def get_file(
     URL = url.format(date_str=date_str)
     csv_fname = csv_filename(fdir=download_to, fname=date_str)
     if not redownload and file_exists(csv_fname):
-        warning(f"file {csv_fname} already exists, skipping download")
+        warning(f"⏭️ file {csv_fname} already exists, skipping download")
         return
     zip_fname = zip_filename(fdir=unzip_to, fname=date_str)
-    success = download_file(URL, zip_fname)
-    if not success:
+
+    ok = download_file(URL, zip_fname)
+    if not ok:
         return
+    success(f"✅ file {csv_fname} successfully downloaded")
+
     extract_to = extract_dir(zip_fname)
     csv_path = unzip_file(zip_fname, extract_to)
     move_file(src=csv_path, dest=csv_fname)
@@ -128,3 +133,5 @@ def get_files(
     for dt in dates:
         date_str = get_date_str(dt)
         get_file(date_str, url, download_to, unzip_to, columns, redownload)
+
+    success("✅ all downloads completed!")

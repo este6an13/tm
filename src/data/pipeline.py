@@ -45,7 +45,7 @@ def run():
     # the actual pipeline params that should be configurable
     START_DATE = date(2025, 1, 1)
     END_DATE = date(2025, 12, 31)
-    STRATUM_SIZE = 3
+    STRATUM_SIZE = 12
     N_FILES = 4
     N_STATIONS = 30
     TIME_MIN = 400

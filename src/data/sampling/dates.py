@@ -5,6 +5,7 @@ from random import sample, seed
 from src.db.models import DateSamplingRun
 from src.db.repo import DateSamplingRunRepo
 from src.utils.day_types import get_day_type
+from src.utils.logging import info, success
 from src.utils.seeds import SEED_SAMPLING_DATES
 
 
@@ -33,7 +34,9 @@ def stratified_sampling(strata, n):
     # g is the variable used for day type in this codebase
     ymg_combinations = sorted({(y, m, g) for (y, m, g) in strata})
     for year, month, day_type in ymg_combinations:
-        samples = sample_stratum(strata, (year, month, day_type), n)
+        stratum = (year, month, day_type)
+        samples = sample_stratum(strata, stratum, n)
+        info(f"📅 sampled {len(samples)} dates for stratum {stratum}!")
         sampled_dates.extend(samples)
 
     sampled_dates = sorted(set(sampled_dates))  # remove duplicates and sort
@@ -50,7 +53,9 @@ def _sample_dates(start_date, end_date, n):
 
 def sample_dates(db, start_date, end_date, n):
     # sampling
+    info(f"🎲 starting dates sampling between {start_date} and {end_date}")
     dates = _sample_dates(start_date, end_date, n)
+    success(f"📅 sampled {n} dates in total!")
     # persistence
     run = DateSamplingRunRepo(db).create(
         DateSamplingRun(
@@ -62,4 +67,5 @@ def sample_dates(db, start_date, end_date, n):
             n_sampled=len(dates),
         )
     )
+    info("💾 dates sampling run signature stored in database")
     return dates, run
