@@ -15,6 +15,7 @@ from src.eda.utils import (
 )
 from src.utils.day_types import DAY_TYPES
 from src.utils.hash import hash_params
+from src.utils.logging import info
 from src.utils.seeds import SEED_BOOTSTRAP_SG_TIME_SERIES, SEED_SAMPLING_DATES
 
 BOOTSTRAP_ITER = 5000  # this will be considered a config value
@@ -218,7 +219,7 @@ def analysis():
 
     START_DATE = date(2025, 1, 1)
     END_DATE = date(2025, 12, 31)
-    STRATUM_SIZE = 3
+    STRATUM_SIZE = 2
 
     DATES, _ = sample_dates(
         start_date=START_DATE,
@@ -241,6 +242,7 @@ def analysis():
     }
 
     params_str, params_hash = hash_params(params_dict)
+    info(f"params hash generated: {params_hash[:7]}")
 
     # station_ids=,
     counts_df = load_counts(
@@ -250,6 +252,7 @@ def analysis():
         dates=DATES,
         window_minutes=WINDOW_MINUTES,
     )
+    info(f"{len(counts_df)} counts loaded")
 
     station_groups = counts_df.groupby("station_id")
 

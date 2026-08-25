@@ -57,7 +57,7 @@ def sample_dates(start_date, end_date, n):
     # sampling
     info(f"🎲 starting dates sampling between {start_date} and {end_date}")
     dates = _sample_dates(start_date, end_date, n)
-    success(f"📅 sampled {n} dates in total!")
+    success(f"📅 sampled {len(dates)} dates in total!")
     # persistence
     run = DateSamplingRunRepo(db).create(
         DateSamplingRun(

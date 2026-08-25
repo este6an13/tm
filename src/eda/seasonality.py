@@ -1,3 +1,4 @@
+from datetime import date
 from itertools import combinations
 
 from numpy import concatenate, quantile
@@ -5,6 +6,7 @@ from numpy.random import default_rng
 from scipy.spatial.distance import cdist, pdist
 
 from src.data.load import load_counts
+from src.data.sampling.dates import sample_dates
 from src.eda.utils import TIME_SERIES_PREFIX_COLS, station_time_series
 from src.utils.seeds import SEED_BOOTSTRAP_SG_TIME_SERIES
 
@@ -141,6 +143,16 @@ def analysis():
     # PLOT_STATION_IDS = [9]
     # SEED_BOOTSTRAP_SG_TIME_SERIES is another param
 
+    START_DATE = date(2025, 1, 1)
+    END_DATE = date(2025, 12, 31)
+    STRATUM_SIZE = 12
+
+    DATES, _ = sample_dates(
+        start_date=START_DATE,
+        end_date=END_DATE,
+        n=STRATUM_SIZE,
+    )
+
     """
     params_dict = {
         "time_min": TIME_MIN,
@@ -158,8 +170,10 @@ def analysis():
         time_min=TIME_MIN,
         time_max=TIME_MAX,
         station_ids=STATION_IDS,
+        dates=DATES,
         window_minutes=WINDOW_MINUTES,
     )
+    print("counts:", len(counts_df))
 
     station_groups = counts_df.groupby("station_id")
 
