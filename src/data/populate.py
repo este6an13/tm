@@ -1,3 +1,4 @@
+from os.path import isfile
 from pathlib import Path
 from typing import Literal
 
@@ -13,7 +14,7 @@ from src.db.repo import (
 )
 from src.db.session import SessionLocal
 from src.utils.day_types import get_day_type
-from src.utils.logging import success, warning
+from src.utils.logging import error, success, warning
 
 
 def window_min_str(window_int):
@@ -161,7 +162,18 @@ def populate_counts(
             )
             continue
 
-        df = read_csv(csv_filename(path, date_str))
+        csv_fname = csv_filename(path, date_str)
+        if not isfile(csv_fname):
+            error(f"❌ file {csv_fname} was not found")
+            continue
+
+        df = read_csv(csv_fname)
+
+        if "station_code" not in df:
+            error_msg = f"❌ file {csv_fname} was not post-processed: please remove it manually and re-start the pipeline"
+            error(error_msg)
+            raise RuntimeError(error_msg)
+
         df = df[df["station_code"].isin(station_codes)]
         station_groups = df.groupby("station_code")
 

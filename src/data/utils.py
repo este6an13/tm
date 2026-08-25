@@ -12,7 +12,7 @@ def cleanup(folders=None, files=None):
     if files is not None:
         for file in files:
             remove(file)
-    success(f"🧹 cleaned up temporary folders and files: {folders + files}")
+    success("🧹 cleaned up temporary folders and files")
 
 
 def get_date_str(dt: date):

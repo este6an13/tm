@@ -8,7 +8,7 @@ from requests import get
 
 from src.data.files import file_exists
 from src.data.utils import csv_filename, get_date_str
-from src.utils.logging import success, warning
+from src.utils.logging import error, success, warning
 
 
 def zip_filename(fdir, fname):
@@ -113,6 +113,7 @@ def get_file(
 
     ok = download_file(URL, zip_fname)
     if not ok:
+        error(f"❌ failed download for file {csv_fname}")
         return
     success(f"✅ file {csv_fname} successfully downloaded")
 

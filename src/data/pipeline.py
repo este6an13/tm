@@ -60,9 +60,11 @@ def run():
         end_date=END_DATE,
         n=STRATUM_SIZE,  # 1 year, 3 samples per month is 36 dates per day type
     )
+    print(dates)
     # if you stop execution amid download, you may end up with unprocessed files
     # and that breaks execution downwards
     # you can manually remove those files and start the script again
+    # note: data is not available for 20250530 for some reason
     get_files(dates, *PARAMS["INS"])
     get_files(dates, *PARAMS["OUTS"])
     cleanup(folders=[TMP_UNZIP_PATH])
