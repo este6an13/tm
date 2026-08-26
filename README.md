@@ -34,6 +34,14 @@ Artifacts are just data and plots the scripts generate that could be reported. I
 
 - `g_mr_ci_p_table_`: Table, each row a day type (g). Using the data from the previous artifact, it aggregates all stations and reports one row per day type. I report median R score, percentiles and the proportion of stations whose score is greater than 1.
 
+- `sg_profile_plot`: Time series with envelops (Median + IQR). Two panels, one per direction. In each panel one time series per day type. This is to visualize if the time series fo different day types look similar.
+
+- `sg_r_ci_plot`: Caterpillar/Forest plot; it has one panel per (direction, day_type) combination. Each panel plots the CI per station. If the lower end is higher than `1.0`, it suggests there are detectable differences between day types for that particular station.
+
+- `sg_dists_clouds_plot`: Raincloud plot per station and direction. Two panels in each plot: the first has the between distances of each day type pair (WD vs SA, SA vs SH, WD vs SH) and the second has the within distances of each day type (WD, SA, SH). If the clouds in the first panel are more to the right than those in the second panel, it suggest there are differences between types for that particular station and direction. This plot is useful because it reallw helps visualizing the pairs comparison, and shows overlaps.
+
+- `sg_dist_matrix_plot`: This is a matrix rendered as a heatmap. Darker tones mean higher distances. Each cell in the matrix is one specific date. We have some "macro-cells", one per day type. THe diagonal should be lighter. It shows within distances. The between distances of each pairs are both in the upper and lower triangles and if all is consistent they should show darker. This plot is useful because it helps identify any potential anomaly. For instance ia specific row/column is darker than the other cells in a macro-cell, it means that day behaved differently. I found for instance that *Sábado Santo* and *December 24th* show those behaviors, because they aren't formally holidays but they dynamics are similar to one.
+
 ### What's next:
 
 - Day Type Groups: in progress, some plots missing
@@ -44,6 +52,7 @@ Artifacts are just data and plots the scripts generate that could be reported. I
 
 - Make data pipeline stations sampling independent of the dates sampling: I should use a method that doesn't have to look at the files to get the stations, maybe using the TM API.
 - Some stratified sampling may be useful later once we characterize the stations profiles a bit
+- Because stations depend on dates sampling, some dates don't have certain station, and it may break downstream analysis using a different sampling. Not sure how to fix this at this moment, since I wouldn't like analysis scripts to trigger a data pipelien to collect that data.
 
 ### Note:
 
