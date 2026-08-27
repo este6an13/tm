@@ -7,9 +7,15 @@ from scipy.spatial.distance import cdist, pdist
 
 from src.data.load import load_counts
 from src.data.sampling.dates import sample_dates
-from src.eda.utils import TIME_SERIES_PREFIX_COLS, station_time_series
-from src.utils.seeds import SEED_BOOTSTRAP_SG_TIME_SERIES
+from src.eda.artifacts import plots
+from src.eda.utils import (
+    TIME_SERIES_PREFIX_COLS,
+    get_station_details,
+    station_time_series,
+)
 from src.utils.day_types import DAY_TYPES
+from src.utils.hash import hash_params
+from src.utils.seeds import SEED_BOOTSTRAP_SG_TIME_SERIES
 
 BOOTSTRAP_ITER = 5000
 
@@ -38,7 +44,7 @@ def within_months_analysis(sm_matrices):
     dist_arrays = {}
     means = {}
     for m in MONTHS:
-        dist_array = pdist(sm_matrices[m], metric="euclidean")
+        dist_array = pdist(sm_matrices[m], metric="correlation")
         mean = dist_array.mean()  # already excludes diagonal
         means[m] = mean
         dist_arrays[m] = dist_array
@@ -47,10 +53,10 @@ def within_months_analysis(sm_matrices):
 
 def between_months_analysis(sm_matrices):
     dist_arrays = {}
-    for q1, q2 in MONTHS_PAIRS:
-        pair_dist_matrix = cdist(sm_matrices[q1], sm_matrices[q2], metric="euclidean")
+    for m1, m2 in MONTHS_PAIRS:
+        pair_dist_matrix = cdist(sm_matrices[m1], sm_matrices[m2], metric="correlation")
         pair_dist_array = pair_dist_matrix.ravel()  # 1D to concatenate
-        dist_arrays[(q1, q2)] = pair_dist_array
+        dist_arrays[(m1, m2)] = pair_dist_array
 
     dist_matrix = concatenate(list(dist_arrays.values()))
     return dist_matrix.mean(), dist_arrays
@@ -86,6 +92,7 @@ def repeat_time_series_analysis(t_series_df):
 
 
 def analyze_time_series(t_series_df, bootstrap=False, day_types=DAY_TYPES):
+    RESULTS = {}
     for day_type, day_type_df in t_series_df.groupby("day_type"):
         if day_type not in day_types:
             continue
@@ -104,17 +111,34 @@ def analyze_time_series(t_series_df, bootstrap=False, day_types=DAY_TYPES):
                 round(R, 5),
                 f"({round(intervals[month][0], 5)}, {round(intervals[month][1], 5)})",
             )
+        RESULTS[day_type] = results
         print()
     print()
+    return RESULTS
 
 
-def analyze_station(station_df, bootstrap=False, day_types=DAY_TYPES):
+def generate_station_artifacts(station_df, params_str, params_hash):
+    # station day type profiles (envelopes)
+    plots.sm_profile_plot(station_df, params_str, params_hash)
+
+
+def analyze_station(
+    station_df,
+    params_str,
+    params_hash,
+    bootstrap=False,
+    day_types=DAY_TYPES,
+    artifacts=False,
+):
     ti_series_df, to_series_df = station_time_series(station_df)
-    # dists shapes are nested: [{q1: w1, ...} {p1: b1, ...}]
+    # dists shapes are nested: [{m1: w1, ...} {p1: b1, ...}]
     print("CHECK-INS")
-    analyze_time_series(ti_series_df, bootstrap, day_types=day_types)  # check-ins
+    _ = analyze_time_series(ti_series_df, bootstrap, day_types=day_types)  # check-ins
     print("CHECK-OUTS")
-    analyze_time_series(to_series_df, bootstrap, day_types=day_types)  # check-outs
+    _ = analyze_time_series(to_series_df, bootstrap, day_types=day_types)  # check-outs
+
+    if artifacts:
+        generate_station_artifacts(station_df, params_str, params_hash)
 
 
 def analysis():
@@ -139,8 +163,8 @@ def analysis():
     TIME_MAX = 2300
     WINDOW_MINUTES = 15
     # STATION_IDS = [1, 6, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25, 29]
+    STATION_IDS = [6, 9, 10, 22]
     # PLOT_STATION_IDS = [1, 8, 9, 10, 11, 14, 18, 20, 21, 22, 25]
-    STATION_IDS = [6]
     # PLOT_STATION_IDS = [9]
     # SEED_BOOTSTRAP_SG_TIME_SERIES is another param
 
@@ -154,7 +178,6 @@ def analysis():
         n=STRATUM_SIZE,
     )
 
-    """
     params_dict = {
         "time_min": TIME_MIN,
         "time_max": TIME_MAX,
@@ -162,9 +185,9 @@ def analysis():
         "station_ids": STATION_IDS,
         "seed": SEED_BOOTSTRAP_SG_TIME_SERIES,
     }
-    """
 
-    # _, _ = hash_params(params_dict)
+    params_str, params_hash = hash_params(params_dict)
+    print(params_hash[:7])
 
     DAY_TYPES_OVERRIDE = ["WD"]  # I'm only interested in analyzing seasonality in WD
 
@@ -181,9 +204,20 @@ def analysis():
     station_groups = counts_df.groupby("station_id")
 
     for _, station_df in station_groups:
-        # _, _, _ = get_station_details(station_df)
+        if len(station_df) < 200:
+            continue  # TODO: not all these stations have sufficient data because they were tied to different date samplings (I'll think how to fix this later)
 
-        analyze_station(station_df, bootstrap=True, day_types=DAY_TYPES_OVERRIDE)
+        _, _, station_name = get_station_details(station_df)
+
+        print(station_name)
+        analyze_station(
+            station_df,
+            params_str,
+            params_hash,
+            bootstrap=True,
+            day_types=DAY_TYPES_OVERRIDE,
+            artifacts=True,
+        )
 
 
 if __name__ == "__main__":

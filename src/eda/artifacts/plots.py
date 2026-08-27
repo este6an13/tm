@@ -12,7 +12,7 @@ from src.eda.utils import (
     station_time_series,
 )
 from src.utils.day_types import DAY_TYPES
-from src.utils.plotting import DAY_TYPES_COLORS
+from src.utils.plotting import DAY_TYPES_COLORS, MONTHS_COLORS
 from src.utils.seeds import GENERIC_SEED
 
 rng_plot = default_rng(GENERIC_SEED)
@@ -342,6 +342,67 @@ def _make_sg_dist_matrix(D, bounds, station_id, station_code, station_name, dire
     return fig
 
 
+def _make_sm_profile_plot(
+    time_cols, ins_curves, outs_curves, station_id, station_code, station_name
+):
+    fig, (ax_in, ax_out) = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
+
+    X = list(map(time_int_to_min, time_cols))
+
+    for ax, curves, ylabel in (
+        (ax_in, ins_curves, "check-ins per 15 min"),
+        (ax_out, outs_curves, "check-outs per 15 min"),
+    ):
+        for month in range(1, 13):
+            med, _, _, n = curves[month]
+            color = MONTHS_COLORS[month]
+            label = f"{month} (n={n})"
+            """
+            ax.fill_between(
+                X,
+                q25,
+                q75,
+                color=color,
+                alpha=0.2,
+                linewidth=0,
+                label=f"{label} envelope",
+            )
+            """
+            ax.plot(X, med, color=color, marker="o", lw=2, markersize=4, label=label)
+
+        ax.set_ylabel(ylabel, fontsize=12)
+        ax.grid(True, alpha=0.3)
+        ax.spines[["top", "right"]].set_visible(False)
+
+    ax_range = range(time_cols[0] - time_cols[0] % 100, time_cols[-1] + 1, 100)
+    ax_out.set_xticks(list(map(time_int_to_min, ax_range)))
+    ax_out.set_xticklabels(list(map(time_int_to_str, ax_range)))
+    ax_out.set_xlabel("time of day")
+    ax_out.tick_params(rotation=45, rotation_mode="xtick")
+
+    fig.suptitle(
+        f"Daily demand profiles by month: {station_id}:{station_code} - {station_name}",
+        fontsize=14,
+        fontweight="bold",
+    )
+    ax_in.set_title("Check-ins", fontsize=11, loc="left")
+    ax_out.set_title("Check-outs", fontsize=11, loc="left")
+
+    fig.text(
+        0.5,
+        0.945,
+        "median and interquartile range across days",
+        ha="center",
+        fontsize=10,
+        color="0.4",
+    )
+
+    ax_in.legend(frameon=False)
+    fig.tight_layout()
+
+    return fig
+
+
 def sg_dist_matrix(
     t_series_df,
     params_str,
@@ -389,3 +450,48 @@ def sg_dist_matrix(
     record_artifact(
         f"{station_id}_sg_dist_matrix_plot_{direction}", params_str, params_hash
     )
+
+
+# 1 plot per station (2 panels: ins/outs), 12 curves (1 per month)
+def sm_profile_plot(station_df, params_str, params_hash):
+    station_id, station_code, station_name = get_station_details(station_df)
+
+    # time_cols will define the horizontal axis
+    time_cols = time_min_cols(station_df.columns)
+
+    # extract time series per station
+    ti_series_df, to_series_df = station_time_series(station_df)
+
+    # compute data to plot: envelopes
+    # check-ins
+    ti_curves = {}
+    ti_m_groups = ti_series_df.groupby("month")
+    for month, ti_m_group in ti_m_groups:
+        ti_m_group_matrix = ti_m_group.drop(columns=TIME_SERIES_PREFIX_COLS).values
+        med = median(ti_m_group_matrix, axis=0)
+        q25, q75 = percentile(ti_m_group_matrix, [25, 75], axis=0)
+        n = ti_m_group_matrix.shape[0]
+        ti_curves[month] = (med, q25, q75, n)
+
+    # check-outs
+    to_curves = {}
+    to_m_groups = to_series_df.groupby("month")
+    for month, to_m_group in to_m_groups:
+        to_m_group_matrix = to_m_group.drop(columns=TIME_SERIES_PREFIX_COLS).values
+        med = median(to_m_group_matrix, axis=0)
+        q25, q75 = percentile(to_m_group_matrix, [25, 75], axis=0)
+        n = to_m_group_matrix.shape[0]
+        to_curves[month] = (med, q25, q75, n)
+
+    # generate plot
+    fig = _make_sm_profile_plot(
+        time_cols, ti_curves, to_curves, station_id, station_code, station_name
+    )
+
+    # persist artifact
+    fig.savefig(
+        f"artifacts/eda/day_type/{params_hash[:7]}_{station_id}_sm_profile_plot.jpg",
+        dpi=200,
+        bbox_inches="tight",
+    )
+    record_artifact(f"{station_id}_sm_profile_plot", params_str, params_hash)
