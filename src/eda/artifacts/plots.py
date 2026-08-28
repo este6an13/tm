@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
-from numpy import clip, concatenate, cumsum, inf, median, percentile
+from numpy import argsort, clip, concatenate, cumsum, inf, median, percentile
 from numpy.random import default_rng
 from pandas import Index
 from scipy.spatial.distance import pdist, squareform
 
+from src.eda.artifacts import tables
 from src.eda.artifacts.load import load_sg_r_ci_tables
 from src.eda.artifacts.utils import record_artifact
 from src.eda.utils import (
@@ -403,6 +404,30 @@ def _make_sm_profile_plot(
     return fig
 
 
+# this detects special dates: Sábado Santo, Halloween, Dec 24,
+# some days of the first weeks of January, ...
+def compute_sg_dist_matrix_anomalies(bounds, D, dates):
+    _sg_dist_matrix_anomalies = []
+
+    edges = [0, *bounds, len(D)]
+
+    for k, g in enumerate(DAY_TYPES):
+        # get block limits (square, so bottom left corner works)
+        lo, hi = (edges[k], edges[k + 1])
+        block = D[lo:hi, lo:hi]
+        n = hi - lo  # number of days in this block
+        # for each day in block, mean distance to other days of same type
+        mean = block.sum(axis=1) / (n - 1)
+        med = median(mean)
+        for j in argsort(mean)[::-1][:5]:  # indexes of top 5 sorted means desc
+            i = lo + j
+            # mean[j] is the mean, ratio = mean/med to normalize
+            _sg_dist_matrix_anomalies.append(
+                (g, dates[i], round(mean[j], 5), round(mean[j] / med, 5))
+            )
+    return _sg_dist_matrix_anomalies
+
+
 def sg_dist_matrix(
     t_series_df,
     params_str,
@@ -412,7 +437,7 @@ def sg_dist_matrix(
     station_name,
     direction,
 ):
-    blocks, _, labels = [], [], []
+    blocks, dates, labels = [], [], []
 
     cols = get_time_cols(t_series_df, direction)
 
@@ -425,7 +450,7 @@ def sg_dist_matrix(
         # each subset matrix is a block
         blocks.append(sub[cols].values)
         # we store the dates as tuples (y, m, d)
-        # dates.extend(sub[["year", "month", "day"]].apply(tuple, axis=1))
+        dates.extend(sub[["year", "month", "day"]].apply(tuple, axis=1))
         # we ensure each record will have its day type label
         labels.extend([g] * len(sub))
 
@@ -449,6 +474,11 @@ def sg_dist_matrix(
 
     record_artifact(
         f"{station_id}_sg_dist_matrix_plot_{direction}", params_str, params_hash
+    )
+
+    _sg_dist_matrix_anomalies = compute_sg_dist_matrix_anomalies(bounds, D, dates)
+    tables.sg_dist_matrix_anomalies(
+        _sg_dist_matrix_anomalies, params_hash, params_str, station_id, direction
     )
 
 

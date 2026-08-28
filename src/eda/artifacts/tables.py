@@ -3,6 +3,28 @@ from pandas import DataFrame
 from src.eda.artifacts.utils import record_artifact
 
 
+def sg_dist_matrix_anomalies(
+    _sg_dist_matrix_anomalies, params_hash, params_str, station_id, direction
+):
+    df = DataFrame(
+        [
+            {
+                "day_type": r[0],
+                "date": r[1],
+                "mean": r[2],
+                "ratio": r[3],
+            }
+            for r in _sg_dist_matrix_anomalies
+        ]
+    )
+    df.to_csv(
+        f"artifacts/eda/day_type/{params_hash[:7]}_{station_id}_sg_dist_matrix_anomalies_{direction}.csv"
+    )
+    record_artifact(
+        f"{station_id}_sg_dist_matrix_anomalies_{direction}", params_str, params_hash
+    )
+
+
 def sg_r_ci_table_ins(_sg_r_ci_table_ins, params_str, params_hash):
     df = DataFrame(
         [
