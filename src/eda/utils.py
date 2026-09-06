@@ -1,4 +1,4 @@
-TIME_SERIES_PREFIX_COLS = ["year", "month", "day", "day_type"]
+TIME_SERIES_PREFIX_COLS = ["year", "month", "day", "day_type", "day_of_week"]
 
 
 def station_time_series(station_df):

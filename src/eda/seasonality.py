@@ -120,6 +120,7 @@ def analyze_time_series(t_series_df, bootstrap=False, day_types=DAY_TYPES):
 def generate_station_artifacts(station_df, params_str, params_hash):
     # station day type profiles (envelopes)
     plots.sm_profile_plot(station_df, params_str, params_hash)
+    plots.swd_profile_plot(station_df, params_str, params_hash)
 
 
 def analyze_station(
