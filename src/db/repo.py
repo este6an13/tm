@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Literal
 
-from sqlalchemy import tuple_
+from sqlalchemy import func, tuple_
 from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.orm import Session
 
@@ -17,6 +17,7 @@ from src.db.models import (
     StationSamplingRun,
 )
 from src.utils.logging import warning
+from src.utils.times import time_int_to_minutes
 
 
 class BaseRepo:
@@ -122,6 +123,64 @@ class CountsRepo(BaseRepo):
             .filter_by(**filters)
             .all()
         )
+
+    def _expected_time_slots(self, time_min: int, time_max: int, window_minutes: int):
+        abs_minutes = time_int_to_minutes(time_max) - time_int_to_minutes(time_min)
+        return int(abs_minutes / window_minutes) + 1
+
+    def get_covered_station_dates(
+        self,
+        time_min,
+        time_max,
+        window_minutes,
+        start_date,
+        end_date,
+    ):
+        expected = self._expected_time_slots(time_min, time_max, window_minutes)
+
+        # select fields
+        query = self.db.query(
+            self.model.year,
+            self.model.month,
+            self.model.day,
+            self.model.station_id,
+            func.count(self.model.count_in).label("n_in"),
+            func.count(self.model.count_out).label("n_out"),
+        )
+
+        # apply filters
+        date_tuple = tuple_(self.model.year, self.model.month, self.model.day)
+        start_date_tuple = (start_date.year, start_date.month, start_date.day)
+        end_date_tuple = (end_date.year, end_date.month, end_date.day)
+        query = query.filter(
+            self.model.time >= time_min,
+            self.model.time <= time_max,
+            self.model.window_minutes == window_minutes,
+            date_tuple >= start_date_tuple,
+            date_tuple <= end_date_tuple,
+        )
+
+        # group to get (date, station) results
+        query = query.group_by(
+            self.model.year,
+            self.model.month,
+            self.model.day,
+            self.model.station_id,
+        )
+
+        # perform completeness check
+        results = (
+            # I'm applying and AND because analysis scripts perform both direction analysis,
+            # I should decide whether having direction a parameter or not in the whole pipeline (download and analysis)
+            query.having(func.count(self.model.count_in) == expected)
+            .having(func.count(self.model.count_out) == expected)
+            .all()
+        )
+
+        return [
+            ((date(r.year, r.month, r.day), r.station_id), r.n_in, r.n_out)
+            for r in results
+        ]
 
 
 class DateSamplingRunRepo(BaseRepo):

@@ -15,15 +15,9 @@ from src.eda.utils import (
 from src.utils.day_types import DAY_TYPES
 from src.utils.plotting import DAY_TYPES_COLORS, MONTHS_COLORS, WD_COLORS
 from src.utils.seeds import GENERIC_SEED
+from src.utils.times import time_int_to_minutes
 
 rng_plot = default_rng(GENERIC_SEED)
-
-
-# transform to absolute minutes to plot scaled correctly
-# if treated as time_int, plot shows a longer jump when going from 445 to 500
-# if transform we would have equidistant jumps: 285 -> 300
-def time_int_to_min(time_int: int) -> int:
-    return (time_int // 100) * 60 + time_int % 100
 
 
 # transform time_int to time representation: 445 -> 04:45
@@ -48,7 +42,7 @@ def get_time_cols(columns: Index, direction: str):
     prefix = {"ins": "ti_", "outs": "to_"}
     return [
         prefix[direction] + str(c)
-        for c in sorted(time_min_cols(columns, direction), key=time_int_to_min)
+        for c in sorted(time_min_cols(columns, direction), key=time_int_to_minutes)
     ]
 
 
@@ -57,7 +51,7 @@ def _make_sg_profile_plot(
 ):
     fig, (ax_in, ax_out) = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
 
-    X = list(map(time_int_to_min, time_cols))
+    X = list(map(time_int_to_minutes, time_cols))
 
     for ax, curves, ylabel in (
         (ax_in, ins_curves, "check-ins per 15 min"),
@@ -83,7 +77,7 @@ def _make_sg_profile_plot(
         ax.spines[["top", "right"]].set_visible(False)
 
     ax_range = range(time_cols[0] - time_cols[0] % 100, time_cols[-1] + 1, 100)
-    ax_out.set_xticks(list(map(time_int_to_min, ax_range)))
+    ax_out.set_xticks(list(map(time_int_to_minutes, ax_range)))
     ax_out.set_xticklabels(list(map(time_int_to_str, ax_range)))
     ax_out.set_xlabel("time of day")
     ax_out.tick_params(rotation=45, rotation_mode="xtick")
@@ -348,7 +342,7 @@ def _make_sm_profile_plot(
 ):
     fig, (ax_in, ax_out) = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
 
-    X = list(map(time_int_to_min, time_cols))
+    X = list(map(time_int_to_minutes, time_cols))
 
     for ax, curves, ylabel in (
         (ax_in, ins_curves, "check-ins per 15 min"),
@@ -376,7 +370,7 @@ def _make_sm_profile_plot(
         ax.spines[["top", "right"]].set_visible(False)
 
     ax_range = range(time_cols[0] - time_cols[0] % 100, time_cols[-1] + 1, 100)
-    ax_out.set_xticks(list(map(time_int_to_min, ax_range)))
+    ax_out.set_xticks(list(map(time_int_to_minutes, ax_range)))
     ax_out.set_xticklabels(list(map(time_int_to_str, ax_range)))
     ax_out.set_xlabel("time of day")
     ax_out.tick_params(rotation=45, rotation_mode="xtick")
@@ -409,7 +403,7 @@ def _make_swd_profile_plot(
 ):
     fig, (ax_in, ax_out) = plt.subplots(2, 1, figsize=(10, 7), sharex=True)
 
-    X = list(map(time_int_to_min, time_cols))
+    X = list(map(time_int_to_minutes, time_cols))
 
     for ax, curves, ylabel in (
         (ax_in, ins_curves, "check-ins per 15 min"),
@@ -435,7 +429,7 @@ def _make_swd_profile_plot(
         ax.spines[["top", "right"]].set_visible(False)
 
     ax_range = range(time_cols[0] - time_cols[0] % 100, time_cols[-1] + 1, 100)
-    ax_out.set_xticks(list(map(time_int_to_min, ax_range)))
+    ax_out.set_xticks(list(map(time_int_to_minutes, ax_range)))
     ax_out.set_xticklabels(list(map(time_int_to_str, ax_range)))
     ax_out.set_xlabel("time of day")
     ax_out.tick_params(rotation=45, rotation_mode="xtick")

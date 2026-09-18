@@ -120,3 +120,22 @@ def load_counts(
         ),
     )
     return t_counts_df
+
+
+def get_covered_station_dates(
+    start_date,
+    end_date,
+    time_min: int = 400,
+    time_max: int = 2300,
+    window_minutes: int = 15,
+):
+    db = SessionLocal()
+
+    counts_repo = CountsRepo(db)
+    counts_repo.get_covered_station_dates(
+        time_min,
+        time_max,
+        window_minutes,
+        start_date,
+        end_date,
+    )
