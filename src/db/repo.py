@@ -128,15 +128,18 @@ class CountsRepo(BaseRepo):
         abs_minutes = time_int_to_minutes(time_max) - time_int_to_minutes(time_min)
         return int(abs_minutes / window_minutes) + 1
 
-    def get_covered_station_dates(
+    def get_complete_dates(
         self,
         time_min,
         time_max,
+        station_ids,
         window_minutes,
         start_date,
         end_date,
+        threshold=0.9,
     ):
         expected = self._expected_time_slots(time_min, time_max, window_minutes)
+        min_daily_total = expected * threshold
 
         # select fields
         query = self.db.query(
@@ -158,6 +161,7 @@ class CountsRepo(BaseRepo):
             self.model.window_minutes == window_minutes,
             date_tuple >= start_date_tuple,
             date_tuple <= end_date_tuple,
+            self.model.station_id.in_(station_ids),
         )
 
         # group to get (date, station) results
@@ -172,8 +176,8 @@ class CountsRepo(BaseRepo):
         results = (
             # I'm applying and AND because analysis scripts perform both direction analysis,
             # I should decide whether having direction a parameter or not in the whole pipeline (download and analysis)
-            query.having(func.count(self.model.count_in) == expected)
-            .having(func.count(self.model.count_out) == expected)
+            query.having(func.count(self.model.count_in) >= min_daily_total)
+            .having(func.count(self.model.count_out) >= min_daily_total)
             .all()
         )
 

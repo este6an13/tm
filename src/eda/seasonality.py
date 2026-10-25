@@ -5,8 +5,7 @@ from numpy import concatenate, quantile
 from numpy.random import default_rng
 from scipy.spatial.distance import cdist, pdist
 
-from src.data.load import load_counts
-from src.data.sampling.dates import sample_dates
+from src.data.load import get_complete_dates, load_counts
 from src.eda.artifacts import plots
 from src.eda.utils import (
     TIME_SERIES_PREFIX_COLS,
@@ -171,12 +170,9 @@ def analysis():
 
     START_DATE = date(2025, 1, 1)
     END_DATE = date(2025, 12, 31)
-    STRATUM_SIZE = 12
 
-    DATES, _ = sample_dates(
-        start_date=START_DATE,
-        end_date=END_DATE,
-        n=STRATUM_SIZE,
+    DATES = get_complete_dates(
+        START_DATE, END_DATE, STATION_IDS, TIME_MIN, TIME_MAX, WINDOW_MINUTES
     )
 
     params_dict = {
@@ -206,7 +202,7 @@ def analysis():
 
     for _, station_df in station_groups:
         if len(station_df) < 200:
-            continue  # TODO: not all these stations have sufficient data because they were tied to different date samplings (I'll think how to fix this later)
+            continue
 
         _, _, station_name = get_station_details(station_df)
 

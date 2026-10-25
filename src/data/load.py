@@ -122,9 +122,10 @@ def load_counts(
     return t_counts_df
 
 
-def get_covered_station_dates(
+def get_complete_dates(
     start_date,
     end_date,
+    station_ids: list[int],
     time_min: int = 400,
     time_max: int = 2300,
     window_minutes: int = 15,
@@ -132,10 +133,14 @@ def get_covered_station_dates(
     db = SessionLocal()
 
     counts_repo = CountsRepo(db)
-    counts_repo.get_covered_station_dates(
+    complete_dates = counts_repo.get_complete_dates(
         time_min,
         time_max,
+        station_ids,
         window_minutes,
         start_date,
         end_date,
     )
+
+    # picking only the date; t[0] is (date, station_id)
+    return [t[0][0] for t in complete_dates]
