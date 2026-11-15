@@ -97,10 +97,15 @@ def load_counts(
     time_min: int = 400,
     time_max: int = 2300,
     station_ids=None,
-    dates: list[date] | None = None,
+    station_dates: list[tuple[date, int]] | None = None,
     **filters,
 ):
     db = SessionLocal()
+
+    # we extract the dates from station_dates
+    dates = None
+    if station_dates is not None:
+        dates = sorted({dt for dt, _ in station_dates})
 
     counts_repo = CountsRepo(db)
     counts = counts_repo.get_by(
@@ -119,6 +124,16 @@ def load_counts(
             window_minutes=filters.get("window_minutes"),
         ),
     )
+
+    # we keep only the (date, station) dropping dates for which the station is incomplete
+    if station_dates is not None:
+        keep = {(dt.year, dt.month, dt.day, s_id) for dt, s_id in station_dates}
+        mask = [
+            (r.year, r.month, r.day, r.station_id) in keep
+            for r in t_counts_df.itertuples()
+        ]
+        t_counts_df = t_counts_df[mask].reset_index(drop=True)
+
     return t_counts_df
 
 
@@ -142,5 +157,6 @@ def get_complete_dates(
         end_date,
     )
 
-    # picking only the date; t[0] is (date, station_id)
-    return [t[0][0] for t in complete_dates]
+    # completeness is per station: return (date, station_id) pairs rather than
+    # bare dates, so a date complete for one station isn't admitted for all
+    return [t[0] for t in complete_dates]

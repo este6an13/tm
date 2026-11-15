@@ -220,7 +220,7 @@ def analysis():
     END_DATE = date(2025, 12, 31)
     STRATUM_SIZE = 2
 
-    DATES = get_complete_dates(
+    STATION_DATES = get_complete_dates(
         START_DATE, END_DATE, STATION_IDS, TIME_MIN, TIME_MAX, WINDOW_MINUTES
     )
 
@@ -234,8 +234,8 @@ def analysis():
         "start_date": str(START_DATE),
         "end_date": str(END_DATE),
         "stratum_size": STRATUM_SIZE,
-        "dates": sorted([str(dt) for dt in DATES]),
-        "n_dates": len(DATES),
+        "station_dates": sorted([f"{dt}:{s_id}" for dt, s_id in STATION_DATES]),
+        "n_station_dates": len(STATION_DATES),
     }
 
     params_str, params_hash = hash_params(params_dict)
@@ -246,7 +246,7 @@ def analysis():
         time_min=TIME_MIN,
         time_max=TIME_MAX,
         station_ids=STATION_IDS,
-        dates=DATES,
+        station_dates=STATION_DATES,
         window_minutes=WINDOW_MINUTES,
     )
     info(f"{len(counts_df)} counts loaded")

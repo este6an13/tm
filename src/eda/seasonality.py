@@ -171,7 +171,7 @@ def analysis():
     START_DATE = date(2025, 1, 1)
     END_DATE = date(2025, 12, 31)
 
-    DATES = get_complete_dates(
+    STATION_DATES = get_complete_dates(
         START_DATE, END_DATE, STATION_IDS, TIME_MIN, TIME_MAX, WINDOW_MINUTES
     )
 
@@ -193,7 +193,7 @@ def analysis():
         time_min=TIME_MIN,
         time_max=TIME_MAX,
         station_ids=STATION_IDS,
-        dates=DATES,
+        station_dates=STATION_DATES,
         window_minutes=WINDOW_MINUTES,
     )
     print("counts:", len(counts_df))
