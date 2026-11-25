@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from numpy import argsort, clip, concatenate, cumsum, inf, median, percentile
 from numpy.random import default_rng
 from pandas import Index
+from scipy.cluster.hierarchy import dendrogram
 from scipy.spatial.distance import pdist, squareform
 
 from src.eda.artifacts import tables
@@ -626,3 +627,16 @@ def swd_profile_plot(station_df, params_str, params_hash):
         bbox_inches="tight",
     )
     record_artifact(f"{station_id}_swd_profile_plot", params_str, params_hash)
+
+
+def sg_dendrogram_plot(Z, labels, params_hash, day_type):
+    fig, ax = plt.subplots(figsize=(8, 6), layout="constrained")
+    dendrogram(Z, labels=labels, orientation="right", ax=ax)
+
+    ax.set_xlabel("Ward linkage distance")
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    fig.suptitle(
+        "Station clustering: weekday profile shape", fontsize=13, fontweight="bold"
+    )
+    path = f"artifacts/eda/day_type/{params_hash[:7]}_sg_{day_type}_dendogram_plot.jpg"
+    fig.savefig(path, dpi=200, bbox_inches="tight")

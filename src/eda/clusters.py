@@ -1,10 +1,17 @@
 from datetime import date
 
 from numpy import vstack
+from scipy.cluster.hierarchy import linkage
 
 from src.data.load import get_complete_dates, load_counts
+from src.eda.artifacts import plots
 from src.eda.utils import get_station_details, station_normalized_profile
 from src.utils.hash import hash_params
+
+
+def clustering(X):
+    Z = linkage(X, method="ward")
+    return Z
 
 
 def analysis():
@@ -66,7 +73,7 @@ def analysis():
     station_groups = counts_df.groupby("station_id")
 
     for day_type in DAY_TYPES:
-        vectors = []
+        names, vectors = [], []
         for _, station_df in station_groups:
             _, _, station_name = get_station_details(station_df)
             print(station_name)
@@ -75,11 +82,13 @@ def analysis():
 
             station_dt_df = station_df[station_df.day_type == day_type]
             vector = station_normalized_profile(station_dt_df)
+            names.append(station_name)
             vectors.append(vector)
 
         X = vstack(vectors)
-        print(X.shape)
-        print(X)
+
+        Z = clustering(X)
+        plots.sg_dendrogram_plot(Z, names, params_hash, day_type)
 
 
 if __name__ == "__main__":
